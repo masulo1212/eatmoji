@@ -19,15 +19,21 @@
   },
   "scripts": {
     "cf-typegen": "wrangler types",
-    "deploy": "wrangler deploy",
-    "dev": "pnpm seedLocalDb && wrangler dev",
+    "deploy:prod": "wrangler deploy --env prod",
+    "deploy:dev": "wrangler deploy --env dev",
+    "dev": "pnpm seedLocalDb && wrangler dev --env dev",
     "predeploy": "wrangler d1 migrations apply DB --remote",
     "seedLocalDb": "wrangler d1 migrations apply DB --local",
     "schema": "npx chanfana",
-    "test": "wrangler deploy --dry-run && npx vitest run --config tests/vitest.config.mts"
+    "test": "wrangler deploy --dry-run && npx vitest run --config tests/vitest.config.mts",
+    "test:prod": "wrangler deploy --dry-run --env prod && npx vitest run --config tests/vitest.config.mts",
+    "test:dev": "wrangler deploy --dry-run --env dev && npx vitest run --config tests/vitest.config.mts"
   },
   "dependencies": {
+    "@google/genai": "^1.11.0",
     "chanfana": "2.8.1",
+    "dotenv": "^17.2.1",
+    "firebase-rest-firestore": "^1.5.0",
     "hono": "4.8.2",
     "zod": "3.25.67"
   },

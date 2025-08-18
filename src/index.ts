@@ -1,18 +1,21 @@
 import { ApiException, fromHono } from "chanfana";
 import { Hono } from "hono";
-import { tasksRouter } from "./endpoints/tasks/router";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import { DummyEndpoint } from "./endpoints/dummyEndpoint";
+import { tasksRouter } from "./endpoints/tasks/router";
+import { getEnvContext } from "./utils/utils";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
-
+const { env } = getEnvContext();
+const IS_DEV = env.NODE_ENV !== "production";
+console.log(IS_DEV);
 app.onError((err, c) => {
   if (err instanceof ApiException) {
     // If it's a Chanfana ApiException, let Chanfana handle the response
     return c.json(
       { success: false, errors: err.buildResponse() },
-      err.status as ContentfulStatusCode,
+      err.status as ContentfulStatusCode
     );
   }
 
@@ -24,18 +27,18 @@ app.onError((err, c) => {
       success: false,
       errors: [{ code: 7000, message: "Internal Server Error" }],
     },
-    500,
+    500
   );
 });
 
 // Setup OpenAPI registry
 const openapi = fromHono(app, {
-  docs_url: "/",
+  docs_url: IS_DEV ? "/" : undefined,
   schema: {
     info: {
-      title: "My Awesome API",
+      title: "Eatmoji API",
       version: "2.0.0",
-      description: "This is the documentation for my awesome API.",
+      description: "Eatmoji API Documentation",
     },
   },
 });
