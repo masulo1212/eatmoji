@@ -1,0 +1,247 @@
+import { FirestoreClient } from 'firebase-rest-firestore';
+import { Diary, firestoreTimestampToDate } from '../types/diary';
+
+/**
+ * Diary Repository 介面 - 定義資料存取操作
+ */
+export interface IDiaryRepository {
+  /**
+   * 根據使用者 ID 查詢 diary 列表
+   * @param userId 使用者 ID
+   * @param date 可選的日期過濾條件
+   * @returns Diary 陣列
+   */
+  findByUser(userId: string, date?: Date): Promise<Diary[]>;
+
+  /**
+   * 根據 ID 查詢單一 diary
+   * @param userId 使用者 ID
+   * @param diaryId Diary ID
+   * @returns Diary 物件或 null
+   */
+  findById(userId: string, diaryId: string): Promise<Diary | null>;
+
+  /**
+   * 建立新的 diary
+   * @param userId 使用者 ID
+   * @param diaryData Diary 資料
+   * @returns 建立的 Diary 物件
+   */
+  create(userId: string, diaryData: Partial<Diary>): Promise<Diary>;
+
+  /**
+   * 更新現有 diary
+   * @param userId 使用者 ID
+   * @param diaryId Diary ID
+   * @param updates 更新資料
+   * @returns 更新後的 Diary 物件
+   */
+  update(userId: string, diaryId: string, updates: Partial<Diary>): Promise<Diary>;
+
+  /**
+   * 軟刪除 diary
+   * @param userId 使用者 ID
+   * @param diaryId Diary ID
+   */
+  softDelete(userId: string, diaryId: string): Promise<void>;
+
+  /**
+   * 計算連續天數
+   * @param userId 使用者 ID
+   * @returns 連續天數
+   */
+  calculateStreak(userId: string): Promise<number>;
+}
+
+/**
+ * Firestore Diary Repository 實作
+ */
+export class FirestoreDiaryRepository implements IDiaryRepository {
+  constructor(private firestore: FirestoreClient) {}
+
+  /**
+   * 取得使用者的 diary collection 參考
+   * @param userId 使用者 ID
+   * @returns Collection 參考
+   */
+  private getUserDiaryCollection(userId: string) {
+    return this.firestore.collection(`users/${userId}/foods`);
+  }
+
+  /**
+   * 將 Firestore 文件轉換為 Diary 物件
+   * @param doc Firestore 文件
+   * @returns 經過適當類型轉換的 Diary 物件
+   */
+  private convertFirestoreDocToDiary(doc: any): Diary {
+    const data = doc.data();
+
+    return {
+      id: doc.id,
+      userId: data.userId,
+      name: data.name,
+      brand: data.brand,
+      originalImgs: data.originalImgs || [],
+      stickerImg: data.stickerImg,
+      calories: data.calories || 0,
+      protein: data.protein || 0,
+      carbs: data.carbs || 0,
+      fat: data.fat || 0,
+      healthAssessment: data.healthAssessment,
+      ingredients: data.ingredients || [],
+      portions: data.portions || 1,
+      sourceId: data.sourceId,
+      source: data.source,
+      status: data.status || 'done',
+      progress: data.progress || 0,
+      error: data.error,
+      diaryDate: firestoreTimestampToDate(data.diaryDate),
+      createdAt: firestoreTimestampToDate(data.createdAt),
+      updatedAt: firestoreTimestampToDate(data.updatedAt),
+      isDeleted: data.isDeleted || false,
+      deletedAt: data.deletedAt
+        ? firestoreTimestampToDate(data.deletedAt)
+        : undefined,
+    };
+  }
+
+  /**
+   * 取得 diary 列表，支援可選的日期過濾
+   * 對應 Flutter getDiaries 邏輯：
+   * - 過濾已刪除的 diary (isDeleted = false)
+   * - 可選的日期過濾（大於等於指定日期）
+   * - 按 diaryDate 降序排列
+   */
+  async findByUser(userId: string, date?: Date): Promise<Diary[]> {
+    const collection = this.getUserDiaryCollection(userId);
+
+    let query = collection.where('isDeleted', '==', false);
+
+    if (date) {
+      query = query.where('diaryDate', '>=', date);
+    }
+
+    query = query.orderBy('diaryDate', 'desc');
+
+    try {
+      const snapshot = await query.get();
+      return snapshot.docs.map(doc => this.convertFirestoreDocToDiary(doc));
+    } catch (error) {
+      console.error('Repository: 取得 diary 列表時發生錯誤:', error);
+      throw new Error('無法從資料庫取得 diary 列表');
+    }
+  }
+
+  /**
+   * 按 ID 取得單一 diary
+   * 對應 Flutter getDiary 邏輯：
+   * - 如果文件不存在則返回 null
+   * - 如果 diary 被軟刪除則返回 null
+   */
+  async findById(userId: string, diaryId: string): Promise<Diary | null> {
+    try {
+      const collection = this.getUserDiaryCollection(userId);
+      const doc = await collection.doc(diaryId).get();
+
+      if (!doc.exists) {
+        return null;
+      }
+
+      const diary = this.convertFirestoreDocToDiary(doc);
+
+      // 如果 diary 被軟刪除，返回 null
+      if (diary.isDeleted) {
+        return null;
+      }
+
+      return diary;
+    } catch (error) {
+      console.error('Repository: 取得 diary 時發生錯誤:', error);
+      throw new Error('無法從資料庫取得 diary');
+    }
+  }
+
+  /**
+   * 建立新的 diary 項目
+   */
+  async create(userId: string, diaryData: Partial<Diary>): Promise<Diary> {
+    try {
+      const collection = this.getUserDiaryCollection(userId);
+      const now = new Date();
+
+      const docData = {
+        ...diaryData,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+        isDeleted: false,
+      };
+
+      const docRef = await collection.add(docData);
+      const createdDoc = await docRef.get();
+
+      return this.convertFirestoreDocToDiary(createdDoc);
+    } catch (error) {
+      console.error('Repository: 建立 diary 時發生錯誤:', error);
+      throw new Error('無法建立 diary');
+    }
+  }
+
+  /**
+   * 更新現有的 diary 項目
+   */
+  async update(userId: string, diaryId: string, updates: Partial<Diary>): Promise<Diary> {
+    try {
+      const collection = this.getUserDiaryCollection(userId);
+      const docRef = collection.doc(diaryId);
+
+      const updateData = {
+        ...updates,
+        updatedAt: new Date(),
+      };
+
+      await docRef.update(updateData);
+      const updatedDoc = await docRef.get();
+
+      if (!updatedDoc.exists) {
+        throw new Error('找不到要更新的 Diary');
+      }
+
+      return this.convertFirestoreDocToDiary(updatedDoc);
+    } catch (error) {
+      console.error('Repository: 更新 diary 時發生錯誤:', error);
+      throw new Error('無法更新 diary');
+    }
+  }
+
+  /**
+   * 軟刪除 diary 項目
+   * 對應 Flutter deleteDiary 邏輯 - 設定 isDeleted 為 true 而非物理刪除
+   */
+  async softDelete(userId: string, diaryId: string): Promise<void> {
+    try {
+      const collection = this.getUserDiaryCollection(userId);
+      const docRef = collection.doc(diaryId);
+
+      await docRef.update({
+        isDeleted: true,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      });
+    } catch (error) {
+      console.error('Repository: 刪除 diary 時發生錯誤:', error);
+      throw new Error('無法刪除 diary');
+    }
+  }
+
+  /**
+   * 計算連續天數（預留位置 - 來自 Flutter 的複雜邏輯）
+   * 需要根據 Flutter calculateStreak 邏輯來實作
+   */
+  async calculateStreak(userId: string): Promise<number> {
+    // TODO: 實作來自 Flutter 的複雜連續天數計算邏輯
+    // 這涉及分頁、日期比較和連續天數計算
+    console.warn('Repository: 連續天數計算尚未實作');
+    return 0;
+  }
+}

@@ -7,30 +7,20 @@
   "observability": {
     "enabled": true
   },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "openapi-template-db",
-      "database_id": "93d00b0a-e676-4cd4-bd53-cfc1020514b0"
-    }
-  ],
   "env": {
     "dev": {
       "vars": {
-        "NODE_ENV": "development"
+        "NODE_ENV": "development",
+        "FIREBASE_PROJECT_ID": "dishes-82202",
+        "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com"
       }
     },
     "prod": {
       "vars": {
-        "NODE_ENV": "production"
-      },
-      "d1_databases": [
-        {
-          "binding": "DB",
-          "database_name": "openapi-template-db",
-          "database_id": "93d00b0a-e676-4cd4-bd53-cfc1020514b0"
-        }
-      ]
+        "NODE_ENV": "production",
+        "FIREBASE_PROJECT_ID": "dishes-82202",
+        "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com"
+      }
     }
   }
 }
