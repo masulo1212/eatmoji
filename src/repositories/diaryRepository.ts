@@ -1,5 +1,5 @@
-import { FirestoreClient } from 'firebase-rest-firestore';
-import { Diary, firestoreTimestampToDate } from '../types/diary';
+import { FirestoreClient } from "firebase-rest-firestore";
+import { Diary, firestoreTimestampToDate } from "../types/diary";
 
 /**
  * Diary Repository 介面 - 定義資料存取操作
@@ -36,7 +36,11 @@ export interface IDiaryRepository {
    * @param updates 更新資料
    * @returns 更新後的 Diary 物件
    */
-  update(userId: string, diaryId: string, updates: Partial<Diary>): Promise<Diary>;
+  update(
+    userId: string,
+    diaryId: string,
+    updates: Partial<Diary>
+  ): Promise<Diary>;
 
   /**
    * 軟刪除 diary
@@ -92,7 +96,7 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
       portions: data.portions || 1,
       sourceId: data.sourceId,
       source: data.source,
-      status: data.status || 'done',
+      status: data.status || "done",
       progress: data.progress || 0,
       error: data.error,
       diaryDate: firestoreTimestampToDate(data.diaryDate),
@@ -115,20 +119,20 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
   async findByUser(userId: string, date?: Date): Promise<Diary[]> {
     const collection = this.getUserDiaryCollection(userId);
 
-    let query = collection.where('isDeleted', '==', false);
+    let query = collection.where("isDeleted", "==", false);
 
     if (date) {
-      query = query.where('diaryDate', '>=', date);
+      query = query.where("diaryDate", ">=", date);
     }
 
-    query = query.orderBy('diaryDate', 'desc');
+    query = query.orderBy("diaryDate", "desc");
 
     try {
       const snapshot = await query.get();
-      return snapshot.docs.map(doc => this.convertFirestoreDocToDiary(doc));
+      return snapshot.docs.map((doc) => this.convertFirestoreDocToDiary(doc));
     } catch (error) {
-      console.error('Repository: 取得 diary 列表時發生錯誤:', error);
-      throw new Error('無法從資料庫取得 diary 列表');
+      console.error("Repository: 取得 diary 列表時發生錯誤:", error);
+      throw new Error("無法從資料庫取得 diary 列表");
     }
   }
 
@@ -156,41 +160,75 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
 
       return diary;
     } catch (error) {
-      console.error('Repository: 取得 diary 時發生錯誤:', error);
-      throw new Error('無法從資料庫取得 diary');
+      console.error("Repository: 取得 diary 時發生錯誤:", error);
+      throw new Error("無法從資料庫取得 diary");
     }
   }
 
   /**
    * 建立新的 diary 項目
+   * 支援自訂文件 ID：如果 diaryData 包含 id 欄位，使用該 ID 作為文件 ID
    */
   async create(userId: string, diaryData: Partial<Diary>): Promise<Diary> {
     try {
       const collection = this.getUserDiaryCollection(userId);
       const now = new Date();
+      console.log("diaryData", diaryData);
 
+      // 提取 ID（如果有的話）
+      const customId = diaryData.id;
+
+      // 建立文件資料，移除 id 欄位以避免重複儲存
+      const { id, ...dataWithoutId } = diaryData;
       const docData = {
-        ...diaryData,
+        ...dataWithoutId,
         userId,
         createdAt: now,
         updatedAt: now,
         isDeleted: false,
       };
 
-      const docRef = await collection.add(docData);
-      const createdDoc = await docRef.get();
+      console.log("customId", customId);
+
+      let createdDoc;
+
+      if (customId) {
+        // 使用自訂 ID 建立文件
+        const docRef = collection.doc(customId);
+        await docRef.set(docData);
+        createdDoc = await docRef.get();
+      } else {
+        // 讓 Firestore 自動產生 ID
+        const docRef = await collection.add(docData);
+        createdDoc = await docRef.get();
+      }
 
       return this.convertFirestoreDocToDiary(createdDoc);
     } catch (error) {
-      console.error('Repository: 建立 diary 時發生錯誤:', error);
-      throw new Error('無法建立 diary');
+      console.error("Repository: 建立 diary 時發生錯誤:", error);
+
+      // 如果是因為文件已存在而失敗，提供更明確的錯誤訊息
+      if (error instanceof Error) {
+        if (
+          (error as any).code === "already-exists" ||
+          error.message?.includes("already exists")
+        ) {
+          throw new Error(`文件 ID 已存在：${diaryData.id}`);
+        }
+      }
+
+      throw new Error("無法建立 diary");
     }
   }
 
   /**
    * 更新現有的 diary 項目
    */
-  async update(userId: string, diaryId: string, updates: Partial<Diary>): Promise<Diary> {
+  async update(
+    userId: string,
+    diaryId: string,
+    updates: Partial<Diary>
+  ): Promise<Diary> {
     try {
       const collection = this.getUserDiaryCollection(userId);
       const docRef = collection.doc(diaryId);
@@ -204,13 +242,13 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
       const updatedDoc = await docRef.get();
 
       if (!updatedDoc.exists) {
-        throw new Error('找不到要更新的 Diary');
+        throw new Error("找不到要更新的 Diary");
       }
 
       return this.convertFirestoreDocToDiary(updatedDoc);
     } catch (error) {
-      console.error('Repository: 更新 diary 時發生錯誤:', error);
-      throw new Error('無法更新 diary');
+      console.error("Repository: 更新 diary 時發生錯誤:", error);
+      throw new Error("無法更新 diary");
     }
   }
 
@@ -229,8 +267,8 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
         updatedAt: new Date(),
       });
     } catch (error) {
-      console.error('Repository: 刪除 diary 時發生錯誤:', error);
-      throw new Error('無法刪除 diary');
+      console.error("Repository: 刪除 diary 時發生錯誤:", error);
+      throw new Error("無法刪除 diary");
     }
   }
 
@@ -241,7 +279,7 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
   async calculateStreak(userId: string): Promise<number> {
     // TODO: 實作來自 Flutter 的複雜連續天數計算邏輯
     // 這涉及分頁、日期比較和連續天數計算
-    console.warn('Repository: 連續天數計算尚未實作');
+    console.warn("Repository: 連續天數計算尚未實作");
     return 0;
   }
 }

@@ -12,14 +12,16 @@
       "vars": {
         "NODE_ENV": "development",
         "FIREBASE_PROJECT_ID": "dishes-82202",
-        "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com"
+        "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com",
+        "FIREBASE_STORAGE_BUCKET": "dishes-82202.firebasestorage.app"
       }
     },
     "prod": {
       "vars": {
         "NODE_ENV": "production",
         "FIREBASE_PROJECT_ID": "dishes-82202",
-        "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com"
+        "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com",
+        "FIREBASE_STORAGE_BUCKET": "dishes-82202.firebasestorage.app"
       }
     }
   }
