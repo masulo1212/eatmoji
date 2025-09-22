@@ -167,6 +167,25 @@ export class DiaryService implements IDiaryService {
       existingDiary
     );
 
+    // 處理圖片更新（如果 stickerImg 是圖片資料）
+    if (processedUpdates.stickerImg && this.isImageData(processedUpdates.stickerImg)) {
+      if (!this.imageCompressionService || !this.storageService) {
+        throw new Error("圖片處理服務未初始化，無法處理圖片更新");
+      }
+      
+      try {
+        // 處理貼紙圖片：壓縮並上傳
+        processedUpdates.stickerImg = await this.processSingleImage(
+          userId,
+          processedUpdates.stickerImg,
+          "sticker"
+        );
+      } catch (error) {
+        console.error("更新 stickerImg 時發生錯誤:", error);
+        throw new Error(`圖片上傳失敗: ${error}`);
+      }
+    }
+
     try {
       // 委派給 Repository 執行資料更新
       const updatedDiary = await this.diaryRepository.update(
@@ -287,7 +306,7 @@ export class DiaryService implements IDiaryService {
    */
   private applyUpdateBusinessRules(
     updates: Partial<Diary>,
-    existingDiary: Diary
+    _existingDiary: Diary
   ): Partial<Diary> {
     const processedUpdates = { ...updates };
 
@@ -316,6 +335,25 @@ export class DiaryService implements IDiaryService {
     // 例如：最大連續天數限制
     const MAX_STREAK = 9999;
     return Math.min(streak, MAX_STREAK);
+  }
+
+  /**
+   * 檢測字串是否為圖片資料
+   * @param data 要檢測的字串
+   * @returns 如果是圖片資料則返回 true
+   */
+  private isImageData(data: string): boolean {
+    // 檢查是否為 DataURL 格式
+    if (data.startsWith('data:image/')) {
+      return true;
+    }
+    
+    // 檢查是否為 Base64（長度通常 > 1000 且不是 HTTP URL）
+    if (data.length > 1000 && !data.startsWith('http')) {
+      return true;
+    }
+    
+    return false;
   }
 
   /**

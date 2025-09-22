@@ -140,6 +140,7 @@ export const FirestoreDateSchema = z.any().transform((val) => {
 
 export const OptionalFirestoreDateSchema = z
   .any()
+  .nullable()
   .optional()
   .transform((val) => {
     if (val === null || val === undefined) return undefined;
@@ -158,8 +159,8 @@ export const DiarySchema = z.object({
   userId: z.string().optional(),
   name: z.string(),
   brand: z.string().optional(),
-  originalImgs: z.array(z.string()).optional(),
-  stickerImg: z.string().optional(),
+  originalImgs: z.array(z.string()).nullable().optional(),
+  stickerImg: z.string().nullable().optional(),
   calories: z.number().default(0),
   protein: z.number().default(0),
   carbs: z.number().default(0),
@@ -188,7 +189,7 @@ export const CreateDiarySchema = DiarySchema.omit({
 });
 
 // Schema for updating a diary (all fields optional)
-export const UpdateDiarySchema = DiarySchema.partial();
+// export const UpdateDiarySchema = DiarySchema.partial();
 
 // Response schemas for API
 export const DiaryResponseSchema = z.object({

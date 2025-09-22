@@ -2,13 +2,17 @@ import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import { requireUserIdFromMiddleware } from "../../middleware/auth";
 import { AppContext } from "../../types";
-import { DiarySchema, DiaryResponseSchema } from "../../types/diary";
+import { DiaryResponseSchema, DiarySchema } from "../../types/diary";
 
 // 導入重構後的分層架構
 import { DiaryController } from "../../controllers/diaryController";
 import { FirestoreDiaryRepository } from "../../repositories/diaryRepository";
 import { DiaryService } from "../../services/diaryService";
-import { getFirestoreFromContext } from "../../utils/firebase";
+import { ImageCompressionService } from "../../services/imageCompressionService";
+import {
+  getFirestoreFromContext,
+  getStorageFromContext,
+} from "../../utils/firebase";
 
 /**
  * DiaryUpdate endpoint - 更新現有的 diary
@@ -130,7 +134,6 @@ export class DiaryUpdate extends OpenAPIRoute {
 
       // 獲取並驗證請求資料
       const data = await this.getValidatedData<typeof this.schema>();
-      console.log("data", data);
       const { id: diaryId } = data.params;
       const updates = data.body;
 
@@ -155,15 +158,24 @@ export class DiaryUpdate extends OpenAPIRoute {
         );
       }
 
-      // 簡單的手動過濾 null 值
+      // 簡單的手動過濾 null 值, 如stickerImg為null時
       const filteredUpdates = Object.fromEntries(
-        Object.entries(updates).filter(([_, value]) => value !== null && value !== undefined)
+        Object.entries(updates).filter(
+          ([_, value]) => value !== null && value !== undefined
+        )
       );
 
       // 初始化分層架構
       const firestore = getFirestoreFromContext(c);
+      const storageService = getStorageFromContext(c);
+      const imageCompressionService = new ImageCompressionService();
+      
       const diaryRepository = new FirestoreDiaryRepository(firestore);
-      const diaryService = new DiaryService(diaryRepository);
+      const diaryService = new DiaryService(
+        diaryRepository,
+        imageCompressionService,
+        storageService
+      );
       const diaryController = new DiaryController(diaryService);
 
       // 調用 Controller 層處理業務邏輯

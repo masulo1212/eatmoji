@@ -132,7 +132,6 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
       const test = snapshot.docs.map((doc) =>
         this.convertFirestoreDocToDiary(doc)
       );
-      console.log("test", test.length);
       return test;
     } catch (error) {
       console.error("Repository: 取得 diary 列表時發生錯誤:", error);

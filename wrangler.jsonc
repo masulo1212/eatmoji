@@ -11,9 +11,9 @@
     "dev": {
       "vars": {
         "NODE_ENV": "development",
-        "FIREBASE_PROJECT_ID": "dishes-82202",
-        "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com",
-        "FIREBASE_STORAGE_BUCKET": "dishes-82202.firebasestorage.app"
+        "FIREBASE_PROJECT_ID": "eatmoji-dev",
+        "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@eatmoji-dev.iam.gserviceaccount.com",
+        "FIREBASE_STORAGE_BUCKET": "eatmoji-dev.firebasestorage.app"
       }
     },
     "prod": {
