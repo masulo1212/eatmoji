@@ -112,7 +112,7 @@ export class DiaryFromRecipe extends OpenAPIRoute {
 
       // 獲取原始請求資料（不進行驗證）
       const rawBody = await c.req.json();
-      
+
       // 預處理資料：將 null 值轉換為 undefined
       const processedBody = this.convertNullToUndefined(rawBody);
 
@@ -124,7 +124,7 @@ export class DiaryFromRecipe extends OpenAPIRoute {
       const diaryRepository = new FirestoreDiaryRepository(firestore);
       const diaryService = new DiaryService(diaryRepository);
       const diaryController = new DiaryController(diaryService);
-
+      console.log("DiaryFromRecipe: diaryData", diaryData);
       // 調用 Controller 層處理 diary 建立
       const response = await diaryController.createDiary(userId, diaryData);
 
@@ -158,12 +158,12 @@ export class DiaryFromRecipe extends OpenAPIRoute {
       console.error("Endpoint: DiaryFromRecipe 處理錯誤:", error);
 
       // 處理 Zod 驗證錯誤
-      if (error && typeof error === 'object' && 'issues' in error) {
+      if (error && typeof error === "object" && "issues" in error) {
         const zodError = error as any;
-        const errorMessages = zodError.issues.map((issue: any) => 
-          `${issue.path.join('.')}: ${issue.message}`
-        ).join(', ');
-        
+        const errorMessages = zodError.issues
+          .map((issue: any) => `${issue.path.join(".")}: ${issue.message}`)
+          .join(", ");
+
         return c.json(
           {
             success: false,
@@ -207,20 +207,20 @@ export class DiaryFromRecipe extends OpenAPIRoute {
     if (obj === null) {
       return undefined;
     }
-    
-    if (typeof obj !== 'object') {
+
+    if (typeof obj !== "object") {
       return obj;
     }
-    
+
     if (Array.isArray(obj)) {
-      return obj.map(item => this.convertNullToUndefined(item));
+      return obj.map((item) => this.convertNullToUndefined(item));
     }
-    
+
     const result: any = {};
     for (const [key, value] of Object.entries(obj)) {
       result[key] = this.convertNullToUndefined(value);
     }
-    
+
     return result;
   }
 }

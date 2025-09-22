@@ -31,7 +31,7 @@ export class DiariesList extends OpenAPIRoute {
         // 可選的日期過濾參數，格式：YYYY-MM-DD
         date: z
           .string()
-          .regex(/^\d{4}-\d{2}-\d{2}$/, "日期格式必須為 YYYY-MM-DD")
+          // .regex(/^\d{4}-\d{2}-\d{2}$/, "日期格式必須為 YYYY-MM-DD")
           .optional()
           .describe("過濾此日期之後的 diary 項目（包含此日期）"),
       }),
@@ -119,6 +119,8 @@ export class DiariesList extends OpenAPIRoute {
       const diaryController = new DiaryController(diaryService);
 
       // 調用 Controller 層處理業務邏輯
+      // console.log("DiariesList: userId", userId);
+      // console.log("DiariesList: dateString", dateString);
       const response = await diaryController.getDiaries(userId, dateString);
 
       // 檢查業務邏輯結果

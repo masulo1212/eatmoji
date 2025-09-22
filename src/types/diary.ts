@@ -181,7 +181,7 @@ export const DiarySchema = z.object({
 
 // Schema for creating a new diary (excludes generated fields)
 export const CreateDiarySchema = DiarySchema.omit({
-  id: true,
+  // id: true,
   userId: true,
   createdAt: true,
   updatedAt: true,

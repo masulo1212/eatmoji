@@ -4,6 +4,7 @@ import { ContentfulStatusCode } from "hono/utils/http-status";
 import { DummyEndpoint } from "./endpoints/dummyEndpoint";
 import { tasksRouter } from "./endpoints/tasks/router";
 import { diariesRouter } from "./endpoints/diaries/router";
+import { dailyWorkoutsRouter } from "./endpoints/daily-workouts/router";
 import { getEnvContext } from "./utils/utils";
 
 // Start a Hono app
@@ -49,6 +50,9 @@ openapi.route("/tasks", tasksRouter);
 
 // Register Diaries Sub router
 openapi.route("/diaries", diariesRouter);
+
+// Register Daily Workouts Sub router
+openapi.route("/daily-workouts", dailyWorkoutsRouter);
 
 // Register other endpoints
 openapi.post("/dummy/:slug", DummyEndpoint);

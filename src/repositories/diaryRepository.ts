@@ -129,7 +129,11 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
 
     try {
       const snapshot = await query.get();
-      return snapshot.docs.map((doc) => this.convertFirestoreDocToDiary(doc));
+      const test = snapshot.docs.map((doc) =>
+        this.convertFirestoreDocToDiary(doc)
+      );
+      console.log("test", test.length);
+      return test;
     } catch (error) {
       console.error("Repository: 取得 diary 列表時發生錯誤:", error);
       throw new Error("無法從資料庫取得 diary 列表");
@@ -179,9 +183,8 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
       const customId = diaryData.id;
 
       // 建立文件資料，移除 id 欄位以避免重複儲存
-      const { id, ...dataWithoutId } = diaryData;
       const docData = {
-        ...dataWithoutId,
+        ...diaryData,
         userId,
         createdAt: now,
         updatedAt: now,
