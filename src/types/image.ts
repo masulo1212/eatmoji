@@ -84,13 +84,13 @@ export interface CreateDiaryWithImagesRequest {
     z.infer<typeof CreateDiarySchema>,
     "originalImgs" | "stickerImg"
   > & {
-    /** 可選的自定義 ID */
-    id?: string;
+    /** 自定義 ID */
+    id: string;
   };
   /** 原始圖片資料陣列（可選） */
-  originalImgs?: (string | Uint8Array)[];
+  originalImgs?: (string | Uint8Array)[] | null;
   /** 貼紙圖片資料（可選） */
-  stickerImg?: string | Uint8Array;
+  stickerImg?: string | Uint8Array | null;
   /** 是否儲存到食物資料庫，預設 false */
   saveToFoodDB?: boolean;
 }
@@ -99,13 +99,11 @@ export interface CreateDiaryWithImagesRequest {
  * 包含圖片的 Diary 建立請求的 Zod schema
  */
 export const CreateDiaryWithImagesRequestSchema = z.object({
-  diaryData: CreateDiarySchema.omit({ originalImgs: true, stickerImg: true }).extend({
-    id: z.string().optional(),
-  }),
+  diaryData: CreateDiarySchema.omit({ originalImgs: true, stickerImg: true }),
   originalImgs: z
     .array(z.union([z.string(), z.instanceof(Uint8Array)]))
-    .optional(),
-  stickerImg: z.union([z.string(), z.instanceof(Uint8Array)]).optional(),
+    .nullish(),
+  stickerImg: z.union([z.string(), z.instanceof(Uint8Array)]).nullish(),
   saveToFoodDB: z.boolean().default(false),
 });
 

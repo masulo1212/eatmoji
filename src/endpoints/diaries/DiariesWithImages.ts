@@ -118,6 +118,7 @@ export class DiariesWithImages extends OpenAPIRoute {
       // 獲取並驗證請求資料
       const data = await this.getValidatedData<typeof this.schema>();
       const request = data.body;
+      console.log("request", request);
 
       // 驗證圖片資料格式
       this.validateImageData(request);
