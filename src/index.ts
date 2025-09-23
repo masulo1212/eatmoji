@@ -6,12 +6,13 @@ import { tasksRouter } from "./endpoints/tasks/router";
 import { diariesRouter } from "./endpoints/diaries/router";
 import { dailyWorkoutsRouter } from "./endpoints/daily-workouts/router";
 import { favFoodsRouter } from "./endpoints/favFoods/router";
+import { recipesRouter } from "./endpoints/recipes/router";
 import { getEnvContext } from "./utils/utils";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
-const { env } = getEnvContext();
-const IS_DEV = env.NODE_ENV !== "production";
+// const { env } = getEnvContext();
+const IS_DEV = process.env.NODE_ENV !== "production";
 console.log(IS_DEV);
 app.onError((err, c) => {
   if (err instanceof ApiException) {
@@ -57,6 +58,9 @@ openapi.route("/daily-workouts", dailyWorkoutsRouter);
 
 // Register FavFoods Sub router
 openapi.route("/fav-foods", favFoodsRouter);
+
+// Register Recipes Sub router
+openapi.route("/recipes", recipesRouter);
 
 // Register other endpoints
 openapi.post("/dummy/:slug", DummyEndpoint);
