@@ -55,8 +55,8 @@ export interface Diary {
   userId?: string;
   name: string;
   brand?: string;
-  originalImgs?: string[];
-  stickerImg?: string;
+  originalImgs?: string[] | null;
+  stickerImg?: string | null;
   calories: number;
   protein: number;
   carbs: number;

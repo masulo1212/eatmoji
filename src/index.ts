@@ -5,6 +5,7 @@ import { DummyEndpoint } from "./endpoints/dummyEndpoint";
 import { tasksRouter } from "./endpoints/tasks/router";
 import { diariesRouter } from "./endpoints/diaries/router";
 import { dailyWorkoutsRouter } from "./endpoints/daily-workouts/router";
+import { favFoodsRouter } from "./endpoints/favFoods/router";
 import { getEnvContext } from "./utils/utils";
 
 // Start a Hono app
@@ -53,6 +54,9 @@ openapi.route("/diaries", diariesRouter);
 
 // Register Daily Workouts Sub router
 openapi.route("/daily-workouts", dailyWorkoutsRouter);
+
+// Register FavFoods Sub router
+openapi.route("/fav-foods", favFoodsRouter);
 
 // Register other endpoints
 openapi.post("/dummy/:slug", DummyEndpoint);
