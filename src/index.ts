@@ -4,14 +4,14 @@ import { ContentfulStatusCode } from "hono/utils/http-status";
 import { DummyEndpoint } from "./endpoints/dummyEndpoint";
 import { tasksRouter } from "./endpoints/tasks/router";
 import { diariesRouter } from "./endpoints/diaries/router";
+import { chatsRouter } from "./endpoints/chats/router";
 import { dailyWorkoutsRouter } from "./endpoints/daily-workouts/router";
 import { favFoodsRouter } from "./endpoints/favFoods/router";
 import { recipesRouter } from "./endpoints/recipes/router";
-import { getEnvContext } from "./utils/utils";
+import { weightRouter } from "./endpoints/weight/router";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
-// const { env } = getEnvContext();
 const IS_DEV = process.env.NODE_ENV !== "production";
 console.log(IS_DEV);
 app.onError((err, c) => {
@@ -53,6 +53,9 @@ openapi.route("/tasks", tasksRouter);
 // Register Diaries Sub router
 openapi.route("/diaries", diariesRouter);
 
+// Register Chats Sub router
+openapi.route("/chats", chatsRouter);
+
 // Register Daily Workouts Sub router
 openapi.route("/daily-workouts", dailyWorkoutsRouter);
 
@@ -61,6 +64,9 @@ openapi.route("/fav-foods", favFoodsRouter);
 
 // Register Recipes Sub router
 openapi.route("/recipes", recipesRouter);
+
+// Register Weight Sub router
+openapi.route("/weight", weightRouter);
 
 // Register other endpoints
 openapi.post("/dummy/:slug", DummyEndpoint);
