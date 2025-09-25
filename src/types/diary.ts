@@ -54,7 +54,7 @@ export interface Diary {
   id?: string;
   userId?: string;
   name: string;
-  brand?: string;
+  brand?: string | null;
   originalImgs?: string[] | null;
   stickerImg?: string | null;
   calories: number;
@@ -158,7 +158,7 @@ export const DiarySchema = z.object({
   id: z.string(),
   userId: z.string().optional(),
   name: z.string(),
-  brand: z.string().optional(),
+  brand: z.string().nullable().optional(),
   originalImgs: z.array(z.string()).nullable().optional(),
   stickerImg: z.string().nullable().optional(),
   calories: z.number().default(0),

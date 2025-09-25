@@ -6,6 +6,7 @@ import { DiariesWithImages } from "./DiariesWithImages";
 import { DiaryUpdate } from "./DiaryUpdate";
 import { DiaryDelete } from "./DiaryDelete";
 import { DiaryFromRecipe } from "./DiaryFromRecipe";
+import { CalculateStreak } from "./CalculateStreak";
 
 // 建立 diaries 子路由器
 export const diariesRouter = fromHono(new Hono());
@@ -16,6 +17,9 @@ diariesRouter.use("/*", authMiddleware);
 
 // GET /diaries - 獲取使用者的 diary 列表
 diariesRouter.get("/", DiariesList);
+
+// GET /diaries/streak - 計算使用者的連續打卡天數
+diariesRouter.get("/streak", CalculateStreak);
 
 // POST /diaries/with-images - 建立包含圖片的新 diary
 diariesRouter.post("/with-images", DiariesWithImages);

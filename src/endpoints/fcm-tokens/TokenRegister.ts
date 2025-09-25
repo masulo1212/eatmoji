@@ -2,17 +2,20 @@ import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import { requireUserIdFromMiddleware } from "../../middleware/auth";
 import { AppContext } from "../../types";
-import { CreateWeightEntrySchema } from "../../types/weight";
+import {
+  CreateFcmTokenSchema,
+  FcmTokenResponseSchema,
+} from "../../types/fcmToken";
 
 // 導入分層架構
-import { WeightController } from "../../controllers/weightController";
-import { FirestoreWeightRepository } from "../../repositories/weightRepository";
-import { WeightService } from "../../services/weightService";
+import { FcmTokenController } from "../../controllers/fcmTokenController";
+import { FirestoreFcmTokenRepository } from "../../repositories/fcmTokenRepository";
+import { FcmTokenService } from "../../services/fcmTokenService";
 import { getFirestoreFromContext } from "../../utils/firebase";
 
 /**
- * WeightAdd endpoint - 新增體重記錄
- * 對應 Flutter 的 addWeight 方法
+ * TokenRegister endpoint - 註冊或更新 FCM Token
+ * 對應 Flutter 的 _registerTokenToFirestore 方法
  *
  * 職責：
  * - OpenAPI schema 定義
@@ -20,18 +23,19 @@ import { getFirestoreFromContext } from "../../utils/firebase";
  * - 調用 Controller 層
  * - 錯誤響應格式化
  */
-export class WeightAdd extends OpenAPIRoute {
+export class TokenRegister extends OpenAPIRoute {
   public schema = {
-    tags: ["Weight"],
-    summary: "新增體重記錄",
-    description: "為已驗證使用者新增體重記錄",
-    operationId: "addWeight",
+    tags: ["FCM Tokens"],
+    summary: "註冊或更新 FCM Token",
+    description:
+      "註冊新的 FCM Token 或更新現有的 Token 資訊，使用設備 ID 作為唯一識別",
+    operationId: "registerFcmToken",
     request: {
       body: {
         content: {
           "application/json": {
-            schema: CreateWeightEntrySchema.openapi({
-              description: "體重記錄資料",
+            schema: CreateFcmTokenSchema.openapi({
+              description: "FCM Token 註冊資料",
             }),
           },
         },
@@ -39,11 +43,11 @@ export class WeightAdd extends OpenAPIRoute {
     },
     responses: {
       "200": {
-        description: "成功新增體重記錄",
+        description: "FCM Token 註冊成功",
         content: {
           "application/json": {
-            schema: z.object({
-              success: z.boolean().default(true),
+            schema: FcmTokenResponseSchema.openapi({
+              description: "FCM Token 註冊結果",
             }),
           },
         },
@@ -109,36 +113,40 @@ export class WeightAdd extends OpenAPIRoute {
       // 從認證中間件獲取使用者 ID
       const userId = requireUserIdFromMiddleware(c);
 
-      // 獲取請求體資料
+      // 獲取請求資料
       const data = await this.getValidatedData<typeof this.schema>();
-      const weightData = data.body;
+      const tokenRequest = data.body;
 
       // 初始化分層架構
       const firestore = getFirestoreFromContext(c);
-      const weightRepository = new FirestoreWeightRepository(firestore);
-      const weightService = new WeightService(weightRepository);
-      const weightController = new WeightController(weightService);
+      const fcmTokenRepository = new FirestoreFcmTokenRepository(firestore);
+      const fcmTokenService = new FcmTokenService(fcmTokenRepository);
+      const fcmTokenController = new FcmTokenController(fcmTokenService);
 
       // 調用 Controller 層處理業務邏輯
-      // console.log("weightData", weightData);
-      const response = await weightController.addWeight(userId, weightData);
+      const response = await fcmTokenController.registerToken(
+        userId,
+        tokenRequest
+      );
 
       // 檢查業務邏輯結果
       if (!response.success) {
-        // 根據錯誤訊息判斷適當的 HTTP 狀態碼
-        let statusCode = 500;
-        if (
-          response.error?.includes("必須為正數") ||
+        let statusCode = 400; // 預設為請求錯誤
+
+        // 根據錯誤訊息判斷狀態碼
+        if (response.error?.includes("使用者 ID")) {
+          statusCode = 401;
+        } else if (
           response.error?.includes("不能為空") ||
-          response.error?.includes("格式") ||
-          response.error?.includes("合理範圍") ||
-          response.error?.includes("未來日期")
+          response.error?.includes("必須為")
         ) {
           statusCode = 400;
+        } else {
+          statusCode = 500;
         }
 
         return c.json(
-          WeightController.toErrorResponse(response, statusCode),
+          FcmTokenController.toErrorResponse(response, statusCode),
           statusCode as any
         );
       }
@@ -146,9 +154,10 @@ export class WeightAdd extends OpenAPIRoute {
       // 返回成功響應
       return c.json({
         success: true,
+        result: response.result,
       });
     } catch (error) {
-      console.error("Endpoint: WeightAdd 處理錯誤:", error);
+      console.error("Endpoint: TokenRegister 處理錯誤:", error);
 
       // 處理認證錯誤
       if (
@@ -162,6 +171,17 @@ export class WeightAdd extends OpenAPIRoute {
             errors: [{ code: 401, message: "Authentication required" }],
           },
           401
+        );
+      }
+
+      // 處理 JSON 解析錯誤
+      if (error instanceof Error && error.message.includes("JSON")) {
+        return c.json(
+          {
+            success: false,
+            errors: [{ code: 400, message: "Invalid JSON format" }],
+          },
+          400
         );
       }
 

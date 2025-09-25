@@ -9,6 +9,8 @@ import { dailyWorkoutsRouter } from "./endpoints/daily-workouts/router";
 import { favFoodsRouter } from "./endpoints/favFoods/router";
 import { recipesRouter } from "./endpoints/recipes/router";
 import { weightRouter } from "./endpoints/weight/router";
+import { usersRouter } from "./endpoints/users/router";
+import { fcmTokensRouter } from "./endpoints/fcm-tokens/router";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -67,6 +69,12 @@ openapi.route("/recipes", recipesRouter);
 
 // Register Weight Sub router
 openapi.route("/weight", weightRouter);
+
+// Register Users Sub router
+openapi.route("/users", usersRouter);
+
+// Register FCM Tokens Sub router
+openapi.route("/fcm-tokens", fcmTokensRouter);
 
 // Register other endpoints
 openapi.post("/dummy/:slug", DummyEndpoint);

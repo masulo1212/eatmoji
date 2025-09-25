@@ -2,17 +2,17 @@ import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import { requireUserIdFromMiddleware } from "../../middleware/auth";
 import { AppContext } from "../../types";
-import { CreateWeightEntrySchema } from "../../types/weight";
+import { UserExistsResponseSchema } from "../../types/user";
 
-// 導入分層架構
-import { WeightController } from "../../controllers/weightController";
-import { FirestoreWeightRepository } from "../../repositories/weightRepository";
-import { WeightService } from "../../services/weightService";
+// 導入重構後的分層架構
+import { UserController } from "../../controllers/userController";
+import { FirestoreUserRepository } from "../../repositories/userRepository";
+import { UserService } from "../../services/userService";
 import { getFirestoreFromContext } from "../../utils/firebase";
 
 /**
- * WeightAdd endpoint - 新增體重記錄
- * 對應 Flutter 的 addWeight 方法
+ * UserExists endpoint - 檢查使用者是否存在
+ * 對應 Flutter 的 checkUserExists(String uid) 方法
  *
  * 職責：
  * - OpenAPI schema 定義
@@ -20,36 +20,30 @@ import { getFirestoreFromContext } from "../../utils/firebase";
  * - 調用 Controller 層
  * - 錯誤響應格式化
  */
-export class WeightAdd extends OpenAPIRoute {
+export class UserExists extends OpenAPIRoute {
   public schema = {
-    tags: ["Weight"],
-    summary: "新增體重記錄",
-    description: "為已驗證使用者新增體重記錄",
-    operationId: "addWeight",
+    tags: ["Users"],
+    summary: "檢查使用者是否存在",
+    description: "檢查指定 UID 的使用者是否存在於系統中",
+    operationId: "checkUserExists",
     request: {
-      body: {
-        content: {
-          "application/json": {
-            schema: CreateWeightEntrySchema.openapi({
-              description: "體重記錄資料",
-            }),
-          },
-        },
-      },
+      params: z.object({
+        uid: z.string().describe("要檢查的使用者 UID"),
+      }),
     },
     responses: {
       "200": {
-        description: "成功新增體重記錄",
+        description: "成功檢查使用者存在性",
         content: {
           "application/json": {
-            schema: z.object({
-              success: z.boolean().default(true),
+            schema: UserExistsResponseSchema.openapi({
+              description: "使用者存在性檢查回應",
             }),
           },
         },
       },
-      "400": {
-        description: "請求參數錯誤",
+      "401": {
+        description: "未授權 - 需要有效的 Firebase ID token",
         content: {
           "application/json": {
             schema: z.object({
@@ -64,8 +58,8 @@ export class WeightAdd extends OpenAPIRoute {
           },
         },
       },
-      "401": {
-        description: "未授權 - 需要有效的 Firebase ID token",
+      "400": {
+        description: "請求參數錯誤",
         content: {
           "application/json": {
             schema: z.object({
@@ -106,49 +100,38 @@ export class WeightAdd extends OpenAPIRoute {
 
   public async handle(c: AppContext) {
     try {
-      // 從認證中間件獲取使用者 ID
-      const userId = requireUserIdFromMiddleware(c);
+      // 從認證中間件獲取使用者 ID（確保使用者已登入）
+      requireUserIdFromMiddleware(c);
 
-      // 獲取請求體資料
+      // 獲取路由參數
       const data = await this.getValidatedData<typeof this.schema>();
-      const weightData = data.body;
+      const { uid } = data.params;
 
       // 初始化分層架構
       const firestore = getFirestoreFromContext(c);
-      const weightRepository = new FirestoreWeightRepository(firestore);
-      const weightService = new WeightService(weightRepository);
-      const weightController = new WeightController(weightService);
+      const userRepository = new FirestoreUserRepository(firestore);
+      const userService = new UserService(userRepository);
+      const userController = new UserController(userService);
 
       // 調用 Controller 層處理業務邏輯
-      // console.log("weightData", weightData);
-      const response = await weightController.addWeight(userId, weightData);
+      const response = await userController.checkUserExists(uid);
 
       // 檢查業務邏輯結果
       if (!response.success) {
-        // 根據錯誤訊息判斷適當的 HTTP 狀態碼
-        let statusCode = 500;
-        if (
-          response.error?.includes("必須為正數") ||
-          response.error?.includes("不能為空") ||
-          response.error?.includes("格式") ||
-          response.error?.includes("合理範圍") ||
-          response.error?.includes("未來日期")
-        ) {
-          statusCode = 400;
-        }
-
+        const statusCode = response.error?.includes("UID 不能為空") ? 400 : 500;
         return c.json(
-          WeightController.toErrorResponse(response, statusCode),
-          statusCode as any
+          UserController.toErrorResponse(response, statusCode),
+          statusCode
         );
       }
 
       // 返回成功響應
       return c.json({
         success: true,
+        result: response.result,
       });
     } catch (error) {
-      console.error("Endpoint: WeightAdd 處理錯誤:", error);
+      console.error("Endpoint: UserExists 處理錯誤:", error);
 
       // 處理認證錯誤
       if (

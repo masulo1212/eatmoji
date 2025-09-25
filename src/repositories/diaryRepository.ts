@@ -275,13 +275,110 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
   }
 
   /**
-   * 計算連續天數（預留位置 - 來自 Flutter 的複雜邏輯）
-   * 需要根據 Flutter calculateStreak 邏輯來實作
+   * 計算連續天數
+   * 實現 Flutter calculateStreak 的完整邏輯：
+   * 1. 分頁查詢使用者的 diary 記錄
+   * 2. 收集所有日期到 Set 中
+   * 3. 判斷今天是否有打卡記錄
+   * 4. 從今天或昨天開始往前推算連續天數
    */
   async calculateStreak(userId: string): Promise<number> {
-    // TODO: 實作來自 Flutter 的複雜連續天數計算邏輯
-    // 這涉及分頁、日期比較和連續天數計算
-    console.warn("Repository: 連續天數計算尚未實作");
-    return 0;
+    const diaryDateSet = new Set<string>();
+    let streak = 0;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayKey = this.dateToKey(today);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayKey = this.dateToKey(yesterday);
+
+    let lastDocument: any = null;
+    let hasMore = true;
+
+    // 判斷今天是否有打卡
+    let todaySigned = false;
+
+    try {
+      while (hasMore) {
+        const collection = this.getUserDiaryCollection(userId);
+        let query = collection
+          .where("isDeleted", "==", false)
+          .orderBy("diaryDate", "desc")
+          .limit(30);
+
+        if (lastDocument) {
+          query = query.startAfter(lastDocument);
+        }
+
+        const snapshot = await query.get();
+
+        if (snapshot.docs.length === 0) break;
+
+        lastDocument = snapshot.docs[snapshot.docs.length - 1];
+
+        // 收集所有日期
+        for (const doc of snapshot.docs) {
+          const data = doc.data();
+          const timestamp = data.diaryDate;
+          if (timestamp) {
+            let date: Date;
+            // 處理 Firestore timestamp 或 Date 物件
+            if (timestamp.toDate) {
+              date = timestamp.toDate();
+            } else if (timestamp instanceof Date) {
+              date = timestamp;
+            } else {
+              // 如果是字串或其他格式，嘗試轉換
+              date = new Date(timestamp);
+            }
+            
+            if (!isNaN(date.getTime())) {
+              const dateKey = this.dateToKey(date);
+              diaryDateSet.add(dateKey);
+            }
+          }
+        }
+
+        // 檢查今天是否打卡
+        if (!todaySigned && diaryDateSet.has(todayKey)) {
+          todaySigned = true;
+        }
+
+        // 如果今天打卡，從今天開始算；如果沒打卡，就從昨天開始算
+        let cursorDate = todaySigned ? today : yesterday;
+
+        // 計算連續天數
+        while (true) {
+          const dateKey = this.dateToKey(cursorDate);
+          if (diaryDateSet.has(dateKey)) {
+            streak += 1;
+            cursorDate = new Date(cursorDate);
+            cursorDate.setDate(cursorDate.getDate() - 1);
+          } else {
+            hasMore = false;
+            break;
+          }
+        }
+
+        if (snapshot.docs.length < 30) break;
+      }
+
+      return streak;
+    } catch (error) {
+      console.error("Repository: 計算連續天數時發生錯誤:", error);
+      throw new Error("無法計算連續天數");
+    }
+  }
+
+  /**
+   * 工具函式：統一格式為 yyyy-MM-dd
+   * 對應 Flutter 的 _dateToKey 方法
+   */
+  private dateToKey(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }
