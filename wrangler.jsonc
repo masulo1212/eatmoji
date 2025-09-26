@@ -13,16 +13,30 @@
         "NODE_ENV": "development",
         "FIREBASE_PROJECT_ID": "eatmoji-dev",
         "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@eatmoji-dev.iam.gserviceaccount.com",
-        "FIREBASE_STORAGE_BUCKET": "eatmoji-dev.firebasestorage.app"
-      }
+        "FIREBASE_STORAGE_BUCKET": "eatmoji-dev.firebasestorage.app",
+        "R2_BUCKET_HASH": "c987597819334b80b86bc3b90e1d36a4"
+      },
+      "r2_buckets": [
+        {
+          "binding": "INGREDIENTS_BUCKET",
+          "bucket_name": "eatmoji-ingredients-dev"
+        }
+      ]
     },
     "prod": {
       "vars": {
         "NODE_ENV": "production",
         "FIREBASE_PROJECT_ID": "dishes-82202",
         "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com",
-        "FIREBASE_STORAGE_BUCKET": "dishes-82202.firebasestorage.app"
-      }
+        "FIREBASE_STORAGE_BUCKET": "dishes-82202.firebasestorage.app",
+        "R2_BUCKET_HASH": "611585f5380348e6906a10765454cae7"
+      },
+      "r2_buckets": [
+        {
+          "binding": "INGREDIENTS_BUCKET",
+          "bucket_name": "eatmoji-ingredients-prod"
+        }
+      ]
     }
   }
 }

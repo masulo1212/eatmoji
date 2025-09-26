@@ -1,6 +1,7 @@
 import type { Context } from "hono";
 import type { FirestoreClient } from "firebase-rest-firestore";
 import type { IStorageService } from "./services/storageService";
+import type { Env } from "./bindings";
 
 export type AppContext = Context<{ 
   Bindings: Env,

@@ -308,7 +308,7 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
           .limit(30);
 
         if (lastDocument) {
-          query = query.startAfter(lastDocument);
+          query = (query as any).startAfter(lastDocument);
         }
 
         const snapshot = await query.get();
@@ -320,6 +320,8 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
         // 收集所有日期
         for (const doc of snapshot.docs) {
           const data = doc.data();
+          if (!data) continue;
+          
           const timestamp = data.diaryDate;
           if (timestamp) {
             let date: Date;

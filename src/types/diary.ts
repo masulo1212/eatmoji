@@ -27,6 +27,7 @@ export const HealthAssessmentSchema = z.object({
 // Ingredient interface and schema
 export interface Ingredient {
   name: string;
+  engName?: string | null;
   calories: number;
   protein: number;
   carbs: number;
@@ -39,6 +40,7 @@ export interface Ingredient {
 
 export const IngredientSchema = z.object({
   name: z.string(),
+  engName: z.string().nullable().optional(),
   calories: z.number().default(0),
   protein: z.number().default(0),
   carbs: z.number().default(0),
