@@ -61,13 +61,12 @@ export class R2StorageService implements IR2StorageService {
       await this.bucket.put(key, imageData, {
         httpMetadata: {
           contentType: "image/png",
-          cacheControl: "public, max-age=10", // 維持1年快取31536000，依靠主動清除
+          cacheControl: "public, max-age=31536000", // 維持1年快取31536000，依靠主動清除
         },
       });
 
       // 生成公開 URL
       const url = this.generatePublicUrl(key);
-
 
       return {
         url,
