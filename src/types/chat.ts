@@ -1,10 +1,253 @@
 import { z } from "zod";
-import { firestoreTimestampToDate, FirestoreDateSchema } from "./diary";
+import { FirestoreDateSchema, firestoreTimestampToDate } from "./diary";
+
+// 用戶數據相關型別定義
+
+/**
+ * 用戶基本資訊
+ */
+export interface BasicInfo {
+  age?: number;
+  height?: number;
+  currentWeight?: number;
+  targetWeight?: number;
+  initWeight?: number;
+  gender?: string;
+  goal?: string;
+  activityLevel?: string;
+  weightUnit?: string;
+  heightUnit?: string;
+  tdee?: number;
+  bmr?: number;
+}
+
+export const BasicInfoSchema = z.object({
+  age: z.coerce.number().optional(),
+  height: z.coerce.number().optional(),
+  currentWeight: z.coerce.number().optional(),
+  targetWeight: z.coerce.number().optional(),
+  initWeight: z.coerce.number().optional(),
+  gender: z.string().optional(),
+  goal: z.string().optional(),
+  activityLevel: z.string().optional(),
+  weightUnit: z.string().optional(),
+  heightUnit: z.string().optional(),
+  tdee: z.coerce.number().optional(),
+  bmr: z.coerce.number().optional(),
+});
+
+/**
+ * 營養目標
+ */
+export interface NutritionGoals {
+  userTargetCalories?: number;
+  bestTargetCalories?: number;
+  userTargetProtein?: number;
+  userTargetCarbs?: number;
+  userTargetFat?: number;
+}
+
+export const NutritionGoalsSchema = z.object({
+  userTargetCalories: z.coerce.number().optional(),
+  bestTargetCalories: z.coerce.number().optional(),
+  userTargetProtein: z.coerce.number().optional(),
+  userTargetCarbs: z.coerce.number().optional(),
+  userTargetFat: z.coerce.number().optional(),
+});
+
+/**
+ * 數據洞察
+ */
+export interface DataInsights {
+  totalChange?: number;
+  weeklyAverageChange?: number;
+  averageDailyCalories?: number;
+  averageDailyProtein?: number;
+  averageDailyCarbs?: number;
+  averageDailyFat?: number;
+  totalExerciseTimes?: number;
+  averageExercisePerWeek?: number;
+  averageDailySteps?: number;
+  totalFoodTrackedDays?: number;
+  weeksToGoal?: number;
+  bestWeeksToGoal?: number;
+}
+
+export const DataInsightsSchema = z.object({
+  totalChange: z.coerce.number().optional(),
+  weeklyAverageChange: z.coerce.number().optional(),
+  averageDailyCalories: z.coerce.number().optional(),
+  averageDailyProtein: z.coerce.number().optional(),
+  averageDailyCarbs: z.coerce.number().optional(),
+  averageDailyFat: z.coerce.number().optional(),
+  totalExerciseTimes: z.coerce.number().optional(),
+  averageExercisePerWeek: z.coerce.number().optional(),
+  averageDailySteps: z.coerce.number().optional(),
+  totalFoodTrackedDays: z.coerce.number().optional(),
+  weeksToGoal: z.coerce.number().optional(),
+  bestWeeksToGoal: z.coerce.number().optional(),
+});
+
+/**
+ * 飲食記錄
+ */
+export interface DietRecord {
+  id?: string;
+  date?: string;
+  name?: string;
+  image?: string | null;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fat?: number;
+  [key: string]: any;
+}
+
+export const DietRecordSchema = z
+  .object({
+    id: z.string().optional(),
+    date: z.string().optional(),
+    name: z.string().optional(),
+    image: z.union([z.string(), z.null()]).optional(),
+    calories: z.coerce.number().optional(),
+    protein: z.coerce.number().optional(),
+    carbs: z.coerce.number().optional(),
+    fat: z.coerce.number().optional(),
+  })
+  .passthrough();
+
+/**
+ * 運動記錄
+ */
+export interface ExerciseRecord {
+  date?: string;
+  steps?: number;
+  totalCaloriesBurned?: number;
+  exerciseList?: any[];
+}
+
+export const ExerciseRecordSchema = z.object({
+  date: z.string().optional(),
+  steps: z.coerce.number().optional(),
+  totalCaloriesBurned: z.coerce.number().optional(),
+  exerciseList: z.array(z.any()).optional(),
+});
+
+/**
+ * 體重歷史
+ */
+export interface WeightHistoryRecord {
+  date?: string;
+  weight?: number;
+  weightUnit?: string;
+}
+
+export const WeightHistoryRecordSchema = z.object({
+  date: z.string().optional(),
+  weight: z.coerce.number().optional(),
+  weightUnit: z.string().optional(),
+});
+
+/**
+ * 用戶數據
+ */
+export interface UserData {
+  basicInfo?: BasicInfo;
+  nutritionGoals?: NutritionGoals;
+  insights?: DataInsights;
+  dietRecords?: DietRecord[];
+  exerciseRecords?: ExerciseRecord[];
+  weightHistory?: WeightHistoryRecord[];
+}
+
+export const UserDataSchema = z.object({
+  basicInfo: BasicInfoSchema.optional(),
+  nutritionGoals: NutritionGoalsSchema.optional(),
+  insights: DataInsightsSchema.optional(),
+  dietRecords: z.array(DietRecordSchema).optional(),
+  exerciseRecords: z.array(ExerciseRecordSchema).optional(),
+  weightHistory: z.array(WeightHistoryRecordSchema).optional(),
+});
+
+/**
+ * 聊天歷史
+ */
+export interface ChatHistory {
+  role: "user" | "assistant";
+  content: string;
+  timestamp?: string;
+}
+
+export const ChatHistorySchema = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string(),
+  timestamp: z.string().optional(),
+});
+
+/**
+ * 聊天數據
+ */
+export interface ChatData {
+  userInput: string;
+  userData: UserData;
+  userLanguage: string;
+  history: ChatHistory[];
+  generateReport: boolean;
+}
+
+export const ChatDataSchema = z.object({
+  userInput: z.string(),
+  userData: UserDataSchema,
+  userLanguage: z.string(),
+  history: z.array(ChatHistorySchema),
+  generateReport: z.boolean(),
+});
+
+/**
+ * 生成配置介面
+ */
+export interface GenerationConfig {
+  tools: Array<{
+    functionDeclarations: Array<{
+      name: string;
+      description: string;
+      parameters: any;
+    }>;
+  }>;
+  toolConfig: {
+    functionCallingConfig: {
+      mode: "ANY" | "AUTO" | "NONE";
+      allowedFunctionNames?: string[];
+    };
+  };
+}
+
+/**
+ * 健康報告結果介面
+ */
+export interface HealthReportResult {
+  [key: string]: any;
+}
+
+/**
+ * 聊天結果介面
+ */
+export interface ChatResult {
+  text?: string;
+  [key: string]: any;
+}
+
+/**
+ * 流式響應塊介面
+ */
+export interface ResponseChunk {
+  text: string;
+}
 
 // 健康狀態列舉
 export enum StatusEnum {
   EXCELLENT = "EXCELLENT",
-  GOOD = "GOOD", 
+  GOOD = "GOOD",
   OK = "OK",
   LOW = "LOW",
   HIGH = "HIGH",
@@ -27,7 +270,7 @@ export const InsightTypeEnumSchema = z.nativeEnum(InsightTypeEnum);
 // 營養素類型列舉
 export enum MacroNutrientType {
   PROTEIN = "protein",
-  CARBS = "carbs", 
+  CARBS = "carbs",
   FATS = "fats",
 }
 
@@ -307,6 +550,33 @@ export const NumberResponseSchema = z.object({
   error: z.string().optional(),
 });
 
+// Chat API Request/Response Schemas
+export const ChatRequestSchema = z.object({
+  input: z.string().optional(),
+  userData: UserDataSchema,
+  user_language: z.string().default("zh_TW"),
+  historyJson: z.string().default("[]"),
+  generateReport: z.boolean().default(false),
+});
+
+export const HealthReportResultSchema = z.object({
+  reportSummary: ReportSummarySchema,
+  weightTrend: WeightTrendSchema,
+  caloriesIntake: CaloriesIntakeSchema,
+  macrosBreakdown: MacrosBreakdownSchema,
+  insights: InsightsSchema,
+  actionPlan: ActionPlanSchema,
+  goalPrediction: GoalPredictionSchema,
+  workoutEatingConsistency: WorkoutEatingConsistencySchema,
+  foodAnalysis: FoodAnalysisSchema,
+});
+
+export const ChatResponseSchema = z.object({
+  success: z.boolean(),
+  result: HealthReportResultSchema.optional(),
+  error: z.string().optional(),
+});
+
 // 輔助函數：將 Firestore 文件轉換為 ChatMessage
 export const convertFirestoreDocToChatMessage = (doc: any): ChatMessage => {
   const data = doc.data();
@@ -325,40 +595,40 @@ export const convertFirestoreDocToChatReport = (doc: any): ChatReport => {
   return {
     id: doc.id,
     reportSummary: data.reportSummary || { text: "" },
-    weightTrend: data.weightTrend || { 
-      summaryText: "", 
-      totalChange: 0, 
-      weeklyAverageChange: 0, 
-      unit: "kg", 
-      chartData: [] 
+    weightTrend: data.weightTrend || {
+      summaryText: "",
+      totalChange: 0,
+      weeklyAverageChange: 0,
+      unit: "kg",
+      chartData: [],
     },
-    caloriesIntake: data.caloriesIntake || { 
-      averageDailyCalories: 0, 
-      userTargetCalories: 0, 
-      unit: "kcal", 
-      status: StatusEnum.OK 
+    caloriesIntake: data.caloriesIntake || {
+      averageDailyCalories: 0,
+      userTargetCalories: 0,
+      unit: "kcal",
+      status: StatusEnum.OK,
     },
     macrosBreakdown: data.macrosBreakdown || { nutrients: [] },
     insights: data.insights || { items: [] },
     actionPlan: data.actionPlan || { actions: [] },
-    goalPrediction: data.goalPrediction || { 
-      text: "", 
-      weeksToGoal: 0, 
-      bestWeeksToGoal: 0, 
-      averageDailyCalories: 0, 
-      bestTargetCalories: 0 
+    goalPrediction: data.goalPrediction || {
+      text: "",
+      weeksToGoal: 0,
+      bestWeeksToGoal: 0,
+      averageDailyCalories: 0,
+      bestTargetCalories: 0,
     },
-    workoutEatingConsistency: data.workoutEatingConsistency || { 
-      totalExerciseTimes: 0, 
-      averageExercisePerWeek: 0, 
-      averageDailySteps: 0, 
-      totalFoodTrackedDays: 0, 
-      summaryText: "" 
+    workoutEatingConsistency: data.workoutEatingConsistency || {
+      totalExerciseTimes: 0,
+      averageExercisePerWeek: 0,
+      averageDailySteps: 0,
+      totalFoodTrackedDays: 0,
+      summaryText: "",
     },
-    foodAnalysis: data.foodAnalysis || { 
-      bestFoods: [], 
-      worstFoods: [], 
-      summaryText: "" 
+    foodAnalysis: data.foodAnalysis || {
+      bestFoods: [],
+      worstFoods: [],
+      summaryText: "",
     },
     createdAt: firestoreTimestampToDate(data.createdAt),
   };

@@ -12,6 +12,9 @@ import { weightRouter } from "./endpoints/weight/router";
 import { usersRouter } from "./endpoints/users/router";
 import { fcmTokensRouter } from "./endpoints/fcm-tokens/router";
 import { imagesRouter } from "./endpoints/images/router";
+import { geminiRouter } from "./endpoints/gemini/router";
+import { emailRouter } from "./endpoints/email/router";
+import type { Env } from "./bindings";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -79,6 +82,12 @@ openapi.route("/fcm-tokens", fcmTokensRouter);
 
 // Register Images Sub router
 openapi.route("/images", imagesRouter);
+
+// Register Gemini AI Sub router
+openapi.route("/gemini", geminiRouter);
+
+// Register Email Sub router
+openapi.route("/email", emailRouter);
 
 // Register other endpoints
 openapi.post("/dummy/:slug", DummyEndpoint);

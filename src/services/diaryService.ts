@@ -168,11 +168,14 @@ export class DiaryService implements IDiaryService {
     );
 
     // 處理圖片更新（如果 stickerImg 是圖片資料）
-    if (processedUpdates.stickerImg && this.isImageData(processedUpdates.stickerImg)) {
+    if (
+      processedUpdates.stickerImg &&
+      this.isImageData(processedUpdates.stickerImg)
+    ) {
       if (!this.imageCompressionService || !this.storageService) {
         throw new Error("圖片處理服務未初始化，無法處理圖片更新");
       }
-      
+
       try {
         // 處理貼紙圖片：壓縮並上傳
         processedUpdates.stickerImg = await this.processSingleImage(
@@ -344,15 +347,15 @@ export class DiaryService implements IDiaryService {
    */
   private isImageData(data: string): boolean {
     // 檢查是否為 DataURL 格式
-    if (data.startsWith('data:image/')) {
+    if (data.startsWith("data:image/")) {
       return true;
     }
-    
+
     // 檢查是否為 Base64（長度通常 > 1000 且不是 HTTP URL）
-    if (data.length > 1000 && !data.startsWith('http')) {
+    if (data.length > 1000 && !data.startsWith("http")) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -430,7 +433,7 @@ export class DiaryService implements IDiaryService {
       // 套用業務規則並建立 Diary
       const processedDiaryData =
         this.applyCreateBusinessRules(diaryDataWithImages);
-      console.log("processedDiaryData", processedDiaryData);
+      // console.log("processedDiaryData", processedDiaryData);
       const createdDiary = await this.diaryRepository.create(
         userId,
         processedDiaryData

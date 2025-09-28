@@ -130,7 +130,7 @@ export class RecipeCreate extends OpenAPIRoute {
       const recipeController = new RecipeController(recipeService);
 
       // 調用 Controller 層處理業務邏輯
-      console.log("requestBody", requestBody);
+
       const response = await recipeController.createRecipe(userId, requestBody);
 
       // 檢查業務邏輯結果

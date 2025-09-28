@@ -1,8 +1,8 @@
 import {
+  ImageProcessingError,
   ImageUploadResult,
   MultipleImageUploadResult,
-  ImageProcessingError,
-} from '../types/image';
+} from "../types/image";
 
 /**
  * Firebase Storage metadata 回應介面
@@ -106,21 +106,20 @@ export class FirebaseStorageService implements IStorageService {
     try {
       const fileName = filename || this.generateFileName();
       const filePath = this.buildFilePath(userId, fileName);
-      
+
       const originalSize = imageData.length;
-      
+
       // 執行上傳
       const downloadURL = await this.uploadFile(filePath, imageData);
-      
+
       return {
         url: downloadURL,
         originalSize,
         compressedSize: imageData.length,
         compressionRatio: 1, // 在這階段已經是壓縮後的資料
       };
-
     } catch (error) {
-      console.error('上傳單張圖片失敗:', error);
+      console.error("上傳單張圖片失敗:", error);
       throw new Error(`${ImageProcessingError.UPLOAD_FAILED}: ${error}`);
     }
   }
@@ -140,7 +139,11 @@ export class FirebaseStorageService implements IStorageService {
     const uploadPromises = imagesData.map(async (imageData, index) => {
       try {
         const fileName = this.generateFileName(index);
-        const result = await this.uploadSingleImage(userId, imageData, fileName);
+        const result = await this.uploadSingleImage(
+          userId,
+          imageData,
+          fileName
+        );
         successResults.push(result);
       } catch (error) {
         console.error(`上傳第 ${index} 張圖片失敗:`, error);
@@ -171,21 +174,22 @@ export class FirebaseStorageService implements IStorageService {
       const url = this.buildStorageURL(filePath);
 
       const response = await fetch(url, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!response.ok) {
-        console.error(`刪除圖片失敗: ${response.status} ${response.statusText}`);
+        console.error(
+          `刪除圖片失敗: ${response.status} ${response.statusText}`
+        );
         return false;
       }
 
       return true;
-
     } catch (error) {
-      console.error('刪除圖片時發生錯誤:', error);
+      console.error("刪除圖片時發生錯誤:", error);
       return false;
     }
   }
@@ -193,30 +197,24 @@ export class FirebaseStorageService implements IStorageService {
   /**
    * 上傳檔案到 Firebase Storage
    */
-  private async uploadFile(filePath: string, data: Uint8Array): Promise<string> {
+  private async uploadFile(
+    filePath: string,
+    data: Uint8Array
+  ): Promise<string> {
     try {
-      console.log(`🔄 開始上傳檔案: ${filePath}`);
-      console.log(`📁 Bucket: ${this.config.bucketName}`);
-      console.log(`📦 檔案大小: ${data.length} bytes`);
-
       const token = await this.getAccessToken();
       const uploadURL = this.buildUploadURL(filePath);
-      
-      console.log(`🌐 上傳 URL: ${uploadURL}`);
-      console.log(`🔑 認證 Token 前 20 字元: ${token.substring(0, 20)}...`);
 
       // 上傳檔案
       const uploadResponse = await fetch(uploadURL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'image/png',
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "image/png",
         },
         body: data,
       });
 
-      console.log(`📡 上傳響應狀態: ${uploadResponse.status}`);
-      
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
         console.error(`❌ 上傳失敗詳情:`);
@@ -227,15 +225,12 @@ export class FirebaseStorageService implements IStorageService {
         throw new Error(`上傳失敗: ${uploadResponse.status} ${errorText}`);
       }
 
-      console.log(`✅ 檔案上傳成功，開始取得下載 URL`);
-
       // 取得下載 URL
       const downloadURL = await this.getDownloadURL(filePath);
       console.log(`🔗 取得下載 URL: ${downloadURL}`);
       return downloadURL;
-
     } catch (error) {
-      console.error('❌ 檔案上傳失敗:', error);
+      console.error("❌ 檔案上傳失敗:", error);
       throw error;
     }
   }
@@ -245,21 +240,15 @@ export class FirebaseStorageService implements IStorageService {
    */
   private async getDownloadURL(filePath: string): Promise<string> {
     try {
-      console.log(`🔍 取得檔案 metadata: ${filePath}`);
-      
       const token = await this.getAccessToken();
       const metadataURL = this.buildStorageURL(filePath);
-      
-      console.log(`🌐 Metadata URL: ${metadataURL}`);
 
       const response = await fetch(metadataURL, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
-
-      console.log(`📡 Metadata 響應狀態: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -271,23 +260,25 @@ export class FirebaseStorageService implements IStorageService {
         throw new Error(`取得下載 URL 失敗: ${response.status} - ${errorText}`);
       }
 
-      const metadata = await response.json() as FirebaseStorageMetadata;
-      console.log(`📋 Metadata:`, JSON.stringify(metadata, null, 2));
-      
+      const metadata = (await response.json()) as FirebaseStorageMetadata;
+
       // 驗證回應資料
       if (!metadata.downloadTokens) {
         console.error(`❌ Firebase Storage metadata 缺少 downloadTokens`);
-        throw new Error('Firebase Storage metadata 缺少 downloadTokens');
+        throw new Error("Firebase Storage metadata 缺少 downloadTokens");
       }
-      
+
       // 建構下載 URL
-      const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${this.config.bucketName}/o/${encodeURIComponent(filePath)}?alt=media&token=${metadata.downloadTokens}`;
-      
+      const downloadURL = `https://firebasestorage.googleapis.com/v0/b/${
+        this.config.bucketName
+      }/o/${encodeURIComponent(filePath)}?alt=media&token=${
+        metadata.downloadTokens
+      }`;
+
       console.log(`✅ 成功建構下載 URL`);
       return downloadURL;
-
     } catch (error) {
-      console.error('❌ 取得下載 URL 失敗:', error);
+      console.error("❌ 取得下載 URL 失敗:", error);
       throw error;
     }
   }
@@ -303,27 +294,20 @@ export class FirebaseStorageService implements IStorageService {
     }
 
     try {
-      console.log(`🔑 開始取得新的 access token`);
-      console.log(`📧 Service Account Email: ${this.config.clientEmail}`);
-      console.log(`🏗️ Project ID: ${this.config.projectId}`);
-
       // 建立 JWT
       const jwt = await this.createJWT();
-      console.log(`📋 JWT 建立成功，長度: ${jwt.length} 字元`);
-      
+
       // 交換存取權杖
-      const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
+      const response = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         body: new URLSearchParams({
-          grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+          grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
           assertion: jwt,
         }),
       });
-
-      console.log(`📡 OAuth 響應狀態: ${response.status}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -331,35 +315,30 @@ export class FirebaseStorageService implements IStorageService {
         console.error(`  狀態碼: ${response.status}`);
         console.error(`  狀態文字: ${response.statusText}`);
         console.error(`  響應內容: ${errorText}`);
-        throw new Error(`OAuth token 取得失敗: ${response.status} ${errorText}`);
+        throw new Error(
+          `OAuth token 取得失敗: ${response.status} ${errorText}`
+        );
       }
 
-      const tokenData = await response.json() as FirebaseOAuthTokenResponse;
-      console.log(`📊 Token 資料:`, {
-        has_access_token: !!tokenData.access_token,
-        expires_in: tokenData.expires_in,
-        token_type: tokenData.token_type
-      });
-      
+      const tokenData = (await response.json()) as FirebaseOAuthTokenResponse;
+
       // 驗證回應資料
       if (!tokenData.access_token || !tokenData.expires_in) {
         console.error(`❌ OAuth 回應格式錯誤：缺少必要欄位`);
-        throw new Error('OAuth 回應格式錯誤：缺少必要欄位');
+        throw new Error("OAuth 回應格式錯誤：缺少必要欄位");
       }
-      
+
       this.accessToken = tokenData.access_token;
       this.tokenExpiry = Date.now() + (tokenData.expires_in - 60) * 1000; // 提前 60 秒過期
 
       // 確保 accessToken 不為 null
       if (!this.accessToken) {
-        throw new Error('取得存取權杖失敗');
+        throw new Error("取得存取權杖失敗");
       }
 
-      console.log(`✅ Access token 取得成功，有效期至: ${new Date(this.tokenExpiry).toISOString()}`);
       return this.accessToken;
-
     } catch (error) {
-      console.error('❌ 取得存取權杖失敗:', error);
+      console.error("❌ 取得存取權杖失敗:", error);
       throw error;
     }
   }
@@ -370,34 +349,42 @@ export class FirebaseStorageService implements IStorageService {
   private async createJWT(): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const header = {
-      alg: 'RS256',
-      typ: 'JWT',
+      alg: "RS256",
+      typ: "JWT",
     };
 
     const payload = {
       iss: this.config.clientEmail,
-      scope: 'https://www.googleapis.com/auth/firebase',
-      aud: 'https://oauth2.googleapis.com/token',
+      scope: "https://www.googleapis.com/auth/firebase",
+      aud: "https://oauth2.googleapis.com/token",
       exp: now + 3600,
       iat: now,
     };
 
     // 使用 WebCrypto API 進行 RSA 簽名
     const privateKey = await this.importPrivateKey(this.config.privateKey);
-    const headerBase64 = btoa(JSON.stringify(header)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
-    const payloadBase64 = btoa(JSON.stringify(payload)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+    const headerBase64 = btoa(JSON.stringify(header))
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+    const payloadBase64 = btoa(JSON.stringify(payload))
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
     const unsignedToken = `${headerBase64}.${payloadBase64}`;
 
     const signature = await crypto.subtle.sign(
-      'RSASSA-PKCS1-v1_5',
+      "RSASSA-PKCS1-v1_5",
       privateKey,
       new TextEncoder().encode(unsignedToken)
     );
 
-    const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_');
+    const signatureBase64 = btoa(
+      String.fromCharCode(...new Uint8Array(signature))
+    )
+      .replace(/=/g, "")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
 
     return `${unsignedToken}.${signatureBase64}`;
   }
@@ -408,9 +395,9 @@ export class FirebaseStorageService implements IStorageService {
   private async importPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
     // 移除 PEM 格式的標頭和標尾
     const pemContents = privateKeyPem
-      .replace(/-----BEGIN PRIVATE KEY-----/, '')
-      .replace(/-----END PRIVATE KEY-----/, '')
-      .replace(/\s/g, '');
+      .replace(/-----BEGIN PRIVATE KEY-----/, "")
+      .replace(/-----END PRIVATE KEY-----/, "")
+      .replace(/\s/g, "");
 
     const binaryDer = atob(pemContents);
     const keyData = new Uint8Array(binaryDer.length);
@@ -419,14 +406,14 @@ export class FirebaseStorageService implements IStorageService {
     }
 
     return await crypto.subtle.importKey(
-      'pkcs8',
+      "pkcs8",
       keyData,
       {
-        name: 'RSASSA-PKCS1-v1_5',
-        hash: 'SHA-256',
+        name: "RSASSA-PKCS1-v1_5",
+        hash: "SHA-256",
       },
       false,
-      ['sign']
+      ["sign"]
     );
   }
 
@@ -444,7 +431,7 @@ export class FirebaseStorageService implements IStorageService {
    */
   private generateFileName(index?: number): string {
     const timestamp = Date.now();
-    const suffix = index !== undefined ? `_${index}` : '';
+    const suffix = index !== undefined ? `_${index}` : "";
     return `${timestamp}${suffix}.png`;
   }
 

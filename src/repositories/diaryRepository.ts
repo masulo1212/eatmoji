@@ -176,7 +176,6 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
     try {
       const collection = this.getUserDiaryCollection(userId);
       const now = new Date();
-      console.log("diaryData", diaryData);
 
       // 提取 ID（如果有的話）
       const customId = diaryData.id;
@@ -189,8 +188,6 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
         updatedAt: now,
         isDeleted: false,
       };
-
-      console.log("customId", customId);
 
       let createdDoc;
 
@@ -321,7 +318,7 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
         for (const doc of snapshot.docs) {
           const data = doc.data();
           if (!data) continue;
-          
+
           const timestamp = data.diaryDate;
           if (timestamp) {
             let date: Date;
@@ -334,7 +331,7 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
               // 如果是字串或其他格式，嘗試轉換
               date = new Date(timestamp);
             }
-            
+
             if (!isNaN(date.getTime())) {
               const dateKey = this.dateToKey(date);
               diaryDateSet.add(dateKey);
@@ -379,8 +376,8 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
    */
   private dateToKey(date: Date): string {
     const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, "0");
+    const day = date.getDate().toString().padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
 }

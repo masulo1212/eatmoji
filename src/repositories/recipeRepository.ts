@@ -181,8 +181,6 @@ export class FirestoreRecipeRepository implements IRecipeRepository {
         updatedAt: now,
       };
 
-      console.log("recipeWithTimestamp", recipeWithTimestamp);
-
       // const firestoreData = this.prepareRecipeForFirestore(recipeWithTimestamp);
 
       // console.log("firestoreData", firestoreData);
