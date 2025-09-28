@@ -443,14 +443,15 @@ export const addRecipeIngredientJsonSchema = {
   properties: {
     name: {
       type: "object",
-      description: "食物名稱的多語言翻譯",
+      description:
+        "食物名稱的多語言翻譯，簡潔不含動詞或裝飾詞，不含括號註解，不要使用逗號做補充",
       properties: {
         zh_TW: { type: "string", description: "繁體中文名稱" },
         zh_CN: { type: "string", description: "簡體中文名稱" },
         en: {
           type: "string",
           description:
-            "英文名稱，優先使用單數形式，但若該食材的標準英文表達為複數則使用複數（如 'noodles', 'beans', 'oats'），不含括號註解",
+            "英文名稱，優先使用單數形式，但若該食材的標準英文表達為複數則使用複數（如 'noodles', 'beans', 'oats'），簡潔不含動詞或裝飾詞，不含括號註解，不要使用逗號做補充",
         },
         ja: { type: "string", description: "日文名稱" },
         ko: { type: "string", description: "韓文名稱" },
@@ -559,12 +560,13 @@ export const addIngredientJsonSchema = {
   properties: {
     name: {
       type: "string",
-      description: "食物名稱，使用指定語言回應",
+      description:
+        "食物名稱，使用指定語言回應，簡潔不含動詞或裝飾詞，不含括號註解，不要使用逗號做補充",
     },
     engName: {
       type: "string",
       description:
-        "食物英文名稱，優先使用單數形式，但若該食材的標準英文表達為複數則使用複數（如 'noodles', 'beans', 'oats'），不含括號註解",
+        "食物英文名稱，優先使用單數形式，但若該食材的標準英文表達為複數則使用複數（如 'noodles', 'beans', 'oats'），簡潔不含動詞或裝飾詞，不含括號註解，不要使用逗號做補充",
     },
     amountValue: {
       type: "number",
@@ -701,6 +703,67 @@ export const EditRecipeResponseSchema = z.object({
 });
 
 export type EditRecipeResponse = z.infer<typeof EditRecipeResponseSchema>;
+
+/**
+ * 翻譯食材結果介面
+ */
+export interface TranslateIngredientResult {
+  original: string;
+  english: string;
+  error?: string;
+}
+
+/**
+ * TranslateIngredient 請求 Schema
+ */
+export const TranslateIngredientRequestSchema = z.object({
+  input: z
+    .string()
+    .min(1, "請輸入食材名稱")
+    .max(200, "食材名稱過長，請限制在 200 字元以內"),
+  user_language: z.string().optional().default("zh_TW"),
+});
+
+export type TranslateIngredientRequest = z.infer<typeof TranslateIngredientRequestSchema>;
+
+/**
+ * TranslateIngredient 回應 Schema
+ */
+export const TranslateIngredientResponseSchema = z.object({
+  success: z.boolean(),
+  result: z
+    .object({
+      original: z.string(),
+      english: z.string(),
+    })
+    .optional(),
+  error: z.string().optional(),
+});
+
+export type TranslateIngredientResponse = z.infer<typeof TranslateIngredientResponseSchema>;
+
+/**
+ * 翻譯食材的 JSON Schema (用於 Gemini AI Function Calling)
+ */
+export const translateIngredientJsonSchema = {
+  type: "object",
+  description: "將任何語言的食材名稱翻譯成簡短的英文名稱",
+  properties: {
+    original: {
+      type: "string",
+      description: "原始食材名稱",
+    },
+    english: {
+      type: "string",
+      description: "英文食材名稱，必須是簡短的通用名稱，不含括號註解、逗號補充或其他裝飾詞語。例如：'chicken'、'rice'、'tomato'",
+    },
+    error: {
+      type: "string",
+      description: "當無法識別為食材時的錯誤訊息",
+    },
+  },
+  required: ["original", "english"],
+};
 
 /**
  * 編輯食譜的 JSON Schema (用於 Gemini AI Function Calling)

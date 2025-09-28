@@ -1,4 +1,4 @@
-import { SupportedLanguage } from '../types/gemini';
+import { SupportedLanguage } from "../types/gemini";
 
 /**
  * 創建餐點文字分析提示詞
@@ -364,7 +364,9 @@ ${userInput}
  * @param userLanguage 使用者語言代碼
  * @returns 錯誤提示詞
  */
-export function generateRecipeIngredientErrorPrompt(userLanguage: SupportedLanguage = "zh_TW"): string {
+export function generateRecipeIngredientErrorPrompt(
+  userLanguage: SupportedLanguage = "zh_TW"
+): string {
   const languageMap: { [key in SupportedLanguage]: string } = {
     zh_TW: "繁體中文",
     zh_CN: "简体中文",
@@ -392,11 +394,14 @@ export function generateRecipeIngredientErrorPrompt(userLanguage: SupportedLangu
     "Tiếng Việt": "Không thể nhận diện thực phẩm, vui lòng mô tả lại",
     ภาษาไทย: "ไม่สามารถระบุอาหารได้ กรุณาอธิบายใหม่",
     "Bahasa Melayu": "Tidak dapat mengenal pasti makanan, sila huraikan semula",
-    "Bahasa Indonesia": "Tidak dapat mengenali makanan, silakan deskripsikan ulang",
-    Français: "Impossible d'identifier la nourriture, veuillez décrire à nouveau",
+    "Bahasa Indonesia":
+      "Tidak dapat mengenali makanan, silakan deskripsikan ulang",
+    Français:
+      "Impossible d'identifier la nourriture, veuillez décrire à nouveau",
     Deutsch: "Lebensmittel nicht erkennbar, bitte erneut beschreiben",
     Español: "No se puede identificar la comida, por favor describe de nuevo",
-    "Português (Brasil)": "Não é possível identificar a comida, por favor, descreva novamente",
+    "Português (Brasil)":
+      "Não é possível identificar a comida, por favor, descreva novamente",
   };
 
   return (
@@ -414,6 +419,48 @@ export function generateRecipeIngredientErrorPrompt(userLanguage: SupportedLangu
  * @param userLanguage 使用者語言代碼
  * @returns 生成的提示詞
  */
+/**
+ * 創建翻譯食材提示詞
+ * @param input 用戶輸入的食材名稱（任何語言）
+ * @returns 提示詞
+ */
+export function createTranslateIngredientPrompt(input: string): string {
+  return `
+你是一位專業的食材翻譯專家，請將用戶提供的食材名稱翻譯成簡短、準確的英文名稱。
+
+### 🎯 任務要求
+
+將以下食材名稱翻譯成英文：「${input}」
+
+### 📌 翻譯規則
+
+1. **簡短為主**：使用最常見、最簡潔的英文單字
+2. **避免裝飾**：不得包含括號註解、逗號補充、形容詞等
+3. **通用名稱**：使用國際通用的食材英文名稱
+4. **標準拼寫**：使用正確的英文拼寫
+
+### ✅ 正確示例
+- 雞胸肉 → chicken breast
+- 白米飯 → rice  
+- 番茄 → tomato
+- 洋蔥 → onion
+
+### ❌ 錯誤示例
+- 白米飯 → white rice (含形容詞)
+- 番茄 → tomato (fresh) (含括號)
+- 豬絞肉 → ground pork, minced pork (含逗號)
+
+### 🔸 特殊處理
+
+- **複合食材**：選擇主要成分的英文名稱
+- **調味料**：使用通用調味料名稱
+- **加工食品**：使用最簡單的英文對應
+- **非食材內容**：如果輸入不是食材，請在 error 欄位說明
+
+請根據以上規則進行翻譯。
+`;
+}
+
 export function createEditRecipePrompt(
   name: string,
   description: string,

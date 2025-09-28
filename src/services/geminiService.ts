@@ -17,10 +17,12 @@ import {
   IngredientItem,
   MealAnalysisResult,
   SupportedLanguage,
+  TranslateIngredientResult,
   addIngredientJsonSchema,
   addMealJsonSchema,
   addRecipeIngredientJsonSchema,
   editRecipeJsonSchema,
+  translateIngredientJsonSchema,
 } from "../types/gemini";
 import {
   createAnalyzePrompt,
@@ -31,8 +33,10 @@ import {
   createAddMealPrompt,
   createAddRecipeIngredientPrompt,
   createEditRecipePrompt,
+  createTranslateIngredientPrompt,
 } from "../utils/geminiPrompts";
 import { arrayBufferToBase64, getImageMimeType } from "../utils/imageUtils";
+import { ApiRetryUtil } from "../utils/ApiRetryUtil";
 
 /**
  * Gemini AI 服務類
@@ -914,6 +918,7 @@ export class GeminiService implements IGeminiService {
 
   /**
    * 調用 Gemini AI API（支援指定模型）
+   * 現在使用 ApiRetryUtil 處理 503 服務不可用錯誤
    */
   private async _callGeminiAPIWithModel(
     env: Env,
@@ -942,13 +947,18 @@ export class GeminiService implements IGeminiService {
     console.log("📝 請求內容長度:", JSON.stringify(requestBody).length);
 
     try {
-      const response = await fetch(`${apiUrl}?key=${env.GOOGLE_API_KEY}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // 使用 ApiRetryUtil 進行帶重試的請求
+      const response = await ApiRetryUtil.fetchWithRetry(
+        `${apiUrl}?key=${env.GOOGLE_API_KEY}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
         },
-        body: JSON.stringify(requestBody),
-      });
+        ApiRetryUtil.createGeminiConfig()
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -1257,6 +1267,7 @@ export class GeminiService implements IGeminiService {
 
   /**
    * 調用 Gemini API（圖片 + 文字輸入）
+   * 現在使用 ApiRetryUtil 處理 503 服務不可用錯誤
    */
   private async _callGeminiAPIWithImages(
     env: Env,
@@ -1293,13 +1304,18 @@ export class GeminiService implements IGeminiService {
     });
 
     try {
-      const response = await fetch(`${apiUrl}?key=${env.GOOGLE_API_KEY}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      // 使用 ApiRetryUtil 進行帶重試的請求
+      const response = await ApiRetryUtil.fetchWithRetry(
+        `${apiUrl}?key=${env.GOOGLE_API_KEY}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
         },
-        body: JSON.stringify(requestBody),
-      });
+        ApiRetryUtil.createGeminiConfig()
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -1895,5 +1911,170 @@ export class GeminiService implements IGeminiService {
       carbs: recipe.carbs,
       fat: recipe.fat,
     });
+  }
+
+  /**
+   * 翻譯食材名稱
+   * @param userInput 用戶輸入的食材名稱（任何語言）
+   * @param env 環境變數
+   * @returns 翻譯結果
+   */
+  async translateIngredient(
+    userInput: string,
+    env: Env
+  ): Promise<TranslateIngredientResult> {
+    try {
+      console.log("GeminiService - 開始翻譯食材:", userInput);
+
+      // 準備提示詞
+      const prompt = createTranslateIngredientPrompt(userInput);
+
+      // 配置 function calling
+      const generationConfig = this._createTranslateIngredientGenerationConfig();
+
+      // 調用 AI API（使用 gemini-2.5-flash-lite 快速回應）
+      const result = await this._callGeminiAPIWithModel(
+        env,
+        prompt,
+        generationConfig,
+        "gemini-2.5-flash-lite"
+      );
+
+      const res: any = (result as any)?.candidates?.[0]?.content?.parts?.[0]
+        ?.functionCall?.args;
+
+      console.log("AI API 翻譯回應:", JSON.stringify(res, null, 2));
+
+      // 解析回應
+      const translationResult = this._parseTranslateIngredientAIResponse(result);
+
+      console.log("GeminiService - 翻譯完成:", translationResult);
+
+      return translationResult;
+    } catch (error) {
+      console.error("GeminiService - 翻譯食材失敗:", error);
+      throw new Error(`翻譯食材失敗: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * 創建翻譯食材的 AI 生成配置
+   */
+  private _createTranslateIngredientGenerationConfig(): GenerationConfig {
+    return {
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: "translate_ingredient",
+              description: "將任何語言的食材名稱翻譯成簡短的英文名稱",
+              parameters: translateIngredientJsonSchema,
+            },
+          ],
+        },
+      ],
+      toolConfig: {
+        functionCallingConfig: {
+          mode: "ANY",
+          allowedFunctionNames: ["translate_ingredient"],
+        },
+      },
+    };
+  }
+
+  /**
+   * 解析翻譯食材的 AI 回應
+   */
+  private _parseTranslateIngredientAIResponse(
+    result: AIResponse
+  ): TranslateIngredientResult {
+    let responseObject: any = {};
+
+    // 優先處理 function calling 回應（新版 API 結構）
+    const functionCalls = result.functionCalls;
+    if (functionCalls && functionCalls.length > 0) {
+      const call = functionCalls[0];
+      if (call && call.name) {
+        if (call.name === "translate_ingredient") {
+          responseObject = call.args || {};
+        }
+      }
+    } else {
+      // 備用：檢查舊版 API 結構
+      const candidate = result.candidates?.[0];
+      if (candidate?.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (
+            part.functionCall &&
+            part.functionCall.name === "translate_ingredient"
+          ) {
+            responseObject = part.functionCall.args || {};
+            break;
+          }
+        }
+      }
+    }
+
+    // 如果仍然沒有找到，嘗試從文字中解析 JSON
+    if (Object.keys(responseObject).length === 0) {
+      console.log("未找到 functionCall 或 args 為空，嘗試從文字解析 JSON");
+      responseObject = this._parseJsonFromText(result);
+    }
+
+    // 驗證和處理結果
+    return this._validateAndProcessTranslateIngredientResult(responseObject);
+  }
+
+  /**
+   * 驗證和處理翻譯食材結果
+   */
+  private _validateAndProcessTranslateIngredientResult(
+    responseObject: any
+  ): TranslateIngredientResult {
+    // 檢查是否為空物件
+    if (Object.keys(responseObject).length === 0) {
+      return {
+        error: "AI 未能生成有效的翻譯結果",
+      } as TranslateIngredientResult;
+    }
+
+    // 檢查是否為錯誤回應
+    if (responseObject.error) {
+      return { error: responseObject.error } as TranslateIngredientResult;
+    }
+
+    // 驗證必要欄位
+    if (!this._validateTranslateIngredientResult(responseObject)) {
+      return { error: "API 回應格式不正確" } as TranslateIngredientResult;
+    }
+
+    return responseObject as TranslateIngredientResult;
+  }
+
+  /**
+   * 驗證翻譯結果格式
+   */
+  private _validateTranslateIngredientResult(result: any): boolean {
+    const requiredFields: string[] = ["original", "english"];
+
+    for (const field of requiredFields) {
+      if (!(field in result)) {
+        console.error(`缺少必要欄位: ${field}`);
+        return false;
+      }
+    }
+
+    // 檢查字串欄位
+    if (typeof result.original !== "string" || result.original.trim() === "") {
+      console.error("original 必須為非空字串");
+      return false;
+    }
+
+    if (typeof result.english !== "string" || result.english.trim() === "") {
+      console.error("english 必須為非空字串");
+      return false;
+    }
+
+    return true;
   }
 }

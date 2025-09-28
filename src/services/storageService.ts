@@ -289,7 +289,7 @@ export class FirebaseStorageService implements IStorageService {
   private async getAccessToken(): Promise<string> {
     // 檢查是否有有效的 token
     if (this.accessToken && Date.now() < this.tokenExpiry) {
-      console.log(`🔄 使用現有的 access token`);
+      // console.log(`🔄 使用現有的 access token`);
       return this.accessToken;
     }
 

@@ -2,11 +2,7 @@ import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
 import { requireUserIdFromMiddleware } from "../../middleware/auth";
 import { AppContext } from "../../types";
-import {
-  AddRecipeIngredientRequestSchema,
-  AddRecipeIngredientResponseSchema,
-  SupportedLanguage,
-} from "../../types/gemini";
+import { TranslateIngredientResponseSchema } from "../../types/gemini";
 
 // 導入分層架構
 import { GeminiController } from "../../controllers/geminiController";
@@ -14,7 +10,7 @@ import { GeminiService } from "../../services/geminiService";
 import { VertexAIService } from "../../services/vertexAIService";
 
 /**
- * AddRecipeIngredient endpoint - 分析食譜食材文字描述（多語言版本）
+ * TranslateIngredient endpoint - 翻譯食材名稱
  *
  * 職責：
  * - OpenAPI schema 定義
@@ -23,19 +19,26 @@ import { VertexAIService } from "../../services/vertexAIService";
  * - 調用 Controller 層
  * - 錯誤響應格式化
  */
-export class AddRecipeIngredient extends OpenAPIRoute {
+export class TranslateIngredient extends OpenAPIRoute {
   public schema = {
     tags: ["Gemini AI"],
-    summary: "分析食譜食材文字描述（多語言版本）",
+    summary: "翻譯食材名稱",
     description:
-      "使用 Gemini AI 分析用戶輸入的食譜食材文字描述，返回詳細的營養資訊和多語言翻譯",
-    operationId: "analyzeRecipeIngredient",
+      "使用 Gemini AI 將任何語言的食材名稱翻譯成簡短的英文名稱，不含括號註解或逗號補充",
+    operationId: "translateIngredient",
     request: {
       body: {
         content: {
           "application/json": {
-            schema: AddRecipeIngredientRequestSchema.openapi({
-              description: "食譜食材分析請求",
+            schema: z.object({
+              input: z
+                .string()
+                .min(1, "請輸入食材名稱")
+                .max(200, "食材名稱過長，請限制在 200 字元以內")
+                .openapi({
+                  description: "要翻譯的食材名稱（任何語言）",
+                  example: "蒜泥白肉",
+                }),
             }),
           },
         },
@@ -43,11 +46,11 @@ export class AddRecipeIngredient extends OpenAPIRoute {
     },
     responses: {
       "200": {
-        description: "成功分析食譜食材",
+        description: "成功翻譯食材",
         content: {
           "application/json": {
-            schema: AddRecipeIngredientResponseSchema.openapi({
-              description: "食譜食材分析結果",
+            schema: TranslateIngredientResponseSchema.openapi({
+              description: "翻譯結果",
             }),
           },
         },
@@ -106,25 +109,24 @@ export class AddRecipeIngredient extends OpenAPIRoute {
   async handle(c: AppContext) {
     try {
       // 1. 驗證身份 - 需要有效的 Firebase 認證
-      const userId = requireUserIdFromMiddleware(c);
+      requireUserIdFromMiddleware(c);
 
-      // 2. 獲取並驗證請求資料
-      const data = await this.getValidatedData<typeof this.schema>();
+      // 2. 解析 JSON 請求體
+      const requestBody = await c.req.json();
 
-      const { input, user_language } = data.body;
-      console.log("input", input);
-      console.log("user_language", user_language);
-      // 3. 初始化依賴鏈（Service → Controller）
-      const geminiService = new GeminiService();
-      const vertexAIService = new VertexAIService();
-      const geminiController = new GeminiController(vertexAIService);
+      // 3. 提取請求參數
+      const userInput = requestBody.input;
 
-      // 4. 驗證請求參數
+      // 4. 初始化依賴鏈（Service → Controller）
+      const isDev = c.env.NODE_ENV === "development";
+      const geminiService = isDev ? new GeminiService() : new VertexAIService();
+      //有時候會有錯誤 User location is not supported for the API use.
+      // const vertexAIService = new VertexAIService();
+      const geminiController = new GeminiController(geminiService);
+
+      // 5. 驗證請求參數
       const validationError =
-        geminiController.validateAddRecipeIngredientRequest(
-          input,
-          user_language || "zh_TW"
-        );
+        geminiController.validateTranslateIngredientRequest(userInput);
 
       if (validationError) {
         return c.json(
@@ -141,14 +143,13 @@ export class AddRecipeIngredient extends OpenAPIRoute {
         );
       }
 
-      // 5. 調用 Controller 處理業務邏輯
-      const result = await geminiController.analyzeRecipeIngredient(
-        input,
-        (user_language || "zh_TW") as SupportedLanguage,
+      // 6. 調用 Controller 處理業務邏輯
+      const result = await geminiController.translateIngredient(
+        userInput,
         c.env
       );
 
-      // 6. 返回響應
+      // 7. 返回響應
       if (result.success) {
         return c.json(result, 200);
       } else {
@@ -158,7 +159,7 @@ export class AddRecipeIngredient extends OpenAPIRoute {
             errors: [
               {
                 code: 400,
-                message: result.error || "分析食譜食材時發生錯誤",
+                message: result.error || "翻譯食材時發生錯誤",
               },
             ],
           },
@@ -167,25 +168,9 @@ export class AddRecipeIngredient extends OpenAPIRoute {
       }
     } catch (error) {
       console.error(
-        "AddRecipeIngredient endpoint - 處理請求時發生錯誤:",
+        "TranslateIngredient endpoint - 處理請求時發生錯誤:",
         error
       );
-
-      // 處理 Zod 驗證錯誤
-      if (error && typeof error === "object" && "issues" in error) {
-        const zodError = error as any;
-        const errorMessages = zodError.issues
-          .map((issue: any) => `${issue.path.join(".")}: ${issue.message}`)
-          .join(", ");
-
-        return c.json(
-          {
-            success: false,
-            errors: [{ code: 400, message: `資料驗證失敗: ${errorMessages}` }],
-          },
-          400 as any
-        );
-      }
 
       // 處理認證錯誤
       if (
@@ -199,6 +184,26 @@ export class AddRecipeIngredient extends OpenAPIRoute {
             errors: [{ code: 401, message: "Authentication required" }],
           },
           401 as any
+        );
+      }
+
+      // 處理 JSON 解析錯誤
+      if (
+        error instanceof Error &&
+        (error.message.includes("Failed to parse") ||
+          error.message.includes("JSON"))
+      ) {
+        return c.json(
+          {
+            success: false,
+            errors: [
+              {
+                code: 400,
+                message: "請求格式錯誤，請使用正確的 JSON 格式",
+              },
+            ],
+          },
+          400 as any
         );
       }
 

@@ -17,10 +17,12 @@ import {
   IngredientItem,
   MealAnalysisResult,
   SupportedLanguage,
+  TranslateIngredientResult,
   addIngredientJsonSchema,
   addMealJsonSchema,
   addRecipeIngredientJsonSchema,
   editRecipeJsonSchema,
+  translateIngredientJsonSchema,
 } from "../types/gemini";
 import {
   createAnalyzePrompt,
@@ -31,8 +33,10 @@ import {
   createAddMealPrompt,
   createAddRecipeIngredientPrompt,
   createEditRecipePrompt,
+  createTranslateIngredientPrompt,
 } from "../utils/geminiPrompts";
 import { arrayBufferToBase64, getImageMimeType } from "../utils/imageUtils";
+import { TokenCacheManager } from "../utils/TokenCacheManager";
 
 /**
  * Vertex AI 服務類
@@ -117,156 +121,25 @@ export class VertexAIService implements IGeminiService {
     }
   }
 
-  /**
-   * 生成 OAuth2 Access Token
-   */
-  private async _generateAccessToken(env: Env): Promise<string> {
-    // 使用 Firebase Service Account 獲取 OAuth2 token
-    const serviceAccountKey = {
-      type: "service_account",
-      project_id: env.FIREBASE_PROJECT_ID,
-      client_email: env.FIREBASE_CLIENT_EMAIL,
-      private_key: env.FIREBASE_PRIVATE_KEY,
-      token_uri: "https://oauth2.googleapis.com/token",
-    };
-
-    // 創建 JWT
-    const header = {
-      alg: "RS256",
-      typ: "JWT",
-    };
-
-    const now = Math.floor(Date.now() / 1000);
-    const payload = {
-      iss: serviceAccountKey.client_email,
-      scope: "https://www.googleapis.com/auth/cloud-platform",
-      aud: serviceAccountKey.token_uri,
-      exp: now + 3600, // 1 hour
-      iat: now,
-    };
-
-    // 編碼 header 和 payload
-    const encodedHeader = btoa(JSON.stringify(header));
-    const encodedPayload = btoa(JSON.stringify(payload));
-    const unsignedToken = `${encodedHeader}.${encodedPayload}`;
-
-    // 使用 Web Crypto API 簽名
-    const privateKey = await crypto.subtle.importKey(
-      "pkcs8",
-      this._parsePrivateKey(serviceAccountKey.private_key),
-      {
-        name: "RSASSA-PKCS1-v1_5",
-        hash: "SHA-256",
-      },
-      false,
-      ["sign"]
-    );
-
-    const signature = await crypto.subtle.sign(
-      "RSASSA-PKCS1-v1_5",
-      privateKey,
-      new TextEncoder().encode(unsignedToken)
-    );
-
-    const encodedSignature = btoa(
-      String.fromCharCode(...new Uint8Array(signature))
-    );
-    const jwt = `${unsignedToken}.${encodedSignature}`;
-
-    // 交換 Access Token
-    const tokenResponse = await fetch(serviceAccountKey.token_uri, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-        assertion: jwt,
-      }),
-    });
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      throw new Error(
-        `OAuth2 token 獲取失敗: ${tokenResponse.status} ${errorText}`
-      );
-    }
-
-    const tokenData = (await tokenResponse.json()) as { access_token: string };
-    return tokenData.access_token;
-  }
-
-  /**
-   * 解析 Private Key
-   */
-  private _parsePrivateKey(privateKeyStr: string): ArrayBuffer {
-    try {
-      // 檢查 Private Key 是否存在
-      if (!privateKeyStr || typeof privateKeyStr !== "string") {
-        throw new Error("Private Key 不存在或格式不正確");
-      }
-
-      // 移除 PEM 格式的 header 和 footer，並清理內容
-      let pemContent = privateKeyStr
-        .replace(/-----BEGIN PRIVATE KEY-----/g, "")
-        .replace(/-----END PRIVATE KEY-----/g, "")
-        .replace(/-----BEGIN RSA PRIVATE KEY-----/g, "")
-        .replace(/-----END RSA PRIVATE KEY-----/g, "")
-        .replace(/\\n/g, "") // 移除字面的 \n
-        .replace(/\\r/g, "") // 移除字面的 \r
-        .replace(/\\t/g, "") // 移除字面的 \t
-        .replace(/\s/g, "") // 移除所有空白字符
-        .replace(/\n/g, "") // 移除實際換行符
-        .replace(/\r/g, ""); // 移除實際回車符
-
-      // 驗證清理後的內容不為空
-      if (!pemContent) {
-        throw new Error("Private Key 內容為空或只包含 PEM 標頭");
-      }
-
-      // 驗證 base64 字符的有效性
-      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-      if (!base64Regex.test(pemContent)) {
-        console.error(
-          "Private Key 包含無效的 base64 字符:",
-          pemContent.substring(0, 50) + "..."
-        );
-        throw new Error("Private Key 包含無效的 base64 字符");
-      }
-
-      // 確保 base64 長度是 4 的倍數
-      while (pemContent.length % 4 !== 0) {
-        pemContent += "=";
-      }
-
-      // Base64 解碼
-      const binaryString = atob(pemContent);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
-      return bytes.buffer;
-    } catch (error) {
-      console.error("Private Key 解析失敗:", error);
-      if (error instanceof Error) {
-        throw new Error(`Firebase Private Key 解析失敗: ${error.message}`);
-      }
-      throw new Error("Firebase Private Key 解析失敗: 未知錯誤");
-    }
-  }
 
   /**
    * 調用 Vertex AI API
+   * 現在使用 TokenCacheManager 獲取快取的 Access Token，避免 524 超時問題
    */
   private async _callVertexAI(
     env: Env,
     prompt: string,
     generationConfig: GenerationConfig,
-    model: string = "gemini-2.5-flash-lite"
+    model: string = "gemini-2.5-flash-lite",
+    ctx?: ExecutionContext
   ): Promise<AIResponse> {
-    // 獲取 Access Token
-    const accessToken = await this._generateAccessToken(env);
+    // 使用 TokenCacheManager 獲取 Access Token（快取優化）
+    const accessToken = await TokenCacheManager.getAccessToken(env);
+
+    // 背景刷新 token（如果需要）
+    if (ctx) {
+      TokenCacheManager.scheduleTokenRefresh(env, ctx);
+    }
 
     // 構建 Vertex AI API 端點
     const apiUrl = `https://${env.VERTEX_AI_LOCATION}-aiplatform.googleapis.com/v1/projects/${env.VERTEX_AI_PROJECT_ID}/locations/${env.VERTEX_AI_LOCATION}/publishers/google/models/${model}:generateContent`;
@@ -795,16 +668,23 @@ export class VertexAIService implements IGeminiService {
 
   /**
    * 調用 Vertex AI API（圖片 + 文字輸入）
+   * 現在使用 TokenCacheManager 獲取快取的 Access Token，避免 524 超時問題
    */
   private async _callVertexAIWithImages(
     env: Env,
     prompt: string,
     imageParts: ImagePart[],
     generationConfig: GenerationConfig,
-    model: string = "gemini-2.5-flash-lite"
+    model: string = "gemini-2.5-flash-lite",
+    ctx?: ExecutionContext
   ): Promise<AIResponse> {
-    // 獲取 Access Token
-    const accessToken = await this._generateAccessToken(env);
+    // 使用 TokenCacheManager 獲取 Access Token（快取優化）
+    const accessToken = await TokenCacheManager.getAccessToken(env);
+
+    // 背景刷新 token（如果需要）
+    if (ctx) {
+      TokenCacheManager.scheduleTokenRefresh(env, ctx);
+    }
 
     // 構建 Vertex AI API 端點
     const apiUrl = `https://${env.VERTEX_AI_LOCATION}-aiplatform.googleapis.com/v1/projects/${env.VERTEX_AI_PROJECT_ID}/locations/${env.VERTEX_AI_LOCATION}/publishers/google/models/${model}:generateContent`;
@@ -1931,6 +1811,171 @@ export class VertexAIService implements IGeminiService {
     // 檢查單位欄位（多語言物件）
     if (!result.amountUnit || typeof result.amountUnit !== "object") {
       console.error("amountUnit 必須為多語言物件");
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * 翻譯食材名稱
+   * @param userInput 用戶輸入的食材名稱（任何語言）
+   * @param env 環境變數
+   * @returns 翻譯結果
+   */
+  async translateIngredient(
+    userInput: string,
+    env: Env
+  ): Promise<TranslateIngredientResult> {
+    try {
+      console.log("VertexAIService - 開始翻譯食材:", userInput);
+
+      // 準備提示詞
+      const prompt = createTranslateIngredientPrompt(userInput);
+
+      // 配置 function calling
+      const generationConfig = this._createTranslateIngredientGenerationConfig();
+
+      // 調用 Vertex AI API（使用 gemini-2.5-flash-lite 快速回應）
+      const result = await this._callVertexAI(
+        env,
+        prompt,
+        generationConfig,
+        "gemini-2.5-flash-lite"
+      );
+
+      const res: any = (result as any)?.candidates?.[0]?.content?.parts?.[0]
+        ?.functionCall?.args;
+
+      console.log("Vertex AI API 翻譯回應:", JSON.stringify(res, null, 2));
+
+      // 解析回應
+      const translationResult = this._parseTranslateIngredientAIResponse(result);
+
+      console.log("VertexAIService - 翻譯完成:", translationResult);
+
+      return translationResult;
+    } catch (error) {
+      console.error("VertexAIService - 翻譯食材失敗:", error);
+      throw new Error(`翻譯食材失敗: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * 創建翻譯食材的 AI 生成配置
+   */
+  private _createTranslateIngredientGenerationConfig(): GenerationConfig {
+    return {
+      tools: [
+        {
+          functionDeclarations: [
+            {
+              name: "translate_ingredient",
+              description: "將任何語言的食材名稱翻譯成簡短的英文名稱",
+              parameters: translateIngredientJsonSchema,
+            },
+          ],
+        },
+      ],
+      toolConfig: {
+        functionCallingConfig: {
+          mode: "ANY",
+          allowedFunctionNames: ["translate_ingredient"],
+        },
+      },
+    };
+  }
+
+  /**
+   * 解析翻譯食材的 AI 回應
+   */
+  private _parseTranslateIngredientAIResponse(
+    result: AIResponse
+  ): TranslateIngredientResult {
+    let responseObject: any = {};
+
+    // 優先處理 function calling 回應（新版 API 結構）
+    const functionCalls = result.functionCalls;
+    if (functionCalls && functionCalls.length > 0) {
+      const call = functionCalls[0];
+      if (call && call.name) {
+        if (call.name === "translate_ingredient") {
+          responseObject = call.args || {};
+        }
+      }
+    } else {
+      // 備用：檢查舊版 API 結構
+      const candidate = result.candidates?.[0];
+      if (candidate?.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (
+            part.functionCall &&
+            part.functionCall.name === "translate_ingredient"
+          ) {
+            responseObject = part.functionCall.args || {};
+            break;
+          }
+        }
+      }
+    }
+
+    // 如果仍然沒有找到，嘗試從文字中解析 JSON
+    if (Object.keys(responseObject).length === 0) {
+      console.log("未找到 functionCall 或 args 為空，嘗試從文字解析 JSON");
+      responseObject = this._parseJsonFromText(result);
+    }
+
+    // 驗證和處理結果
+    return this._validateAndProcessTranslateIngredientResult(responseObject);
+  }
+
+  /**
+   * 驗證和處理翻譯食材結果
+   */
+  private _validateAndProcessTranslateIngredientResult(
+    responseObject: any
+  ): TranslateIngredientResult {
+    // 檢查是否為空物件
+    if (Object.keys(responseObject).length === 0) {
+      return {
+        error: "Vertex AI 未能生成有效的翻譯結果",
+      } as TranslateIngredientResult;
+    }
+
+    // 檢查是否為錯誤回應
+    if (responseObject.error) {
+      return { error: responseObject.error } as TranslateIngredientResult;
+    }
+
+    // 驗證必要欄位
+    if (!this._validateTranslateIngredientResult(responseObject)) {
+      return { error: "API 回應格式不正確" } as TranslateIngredientResult;
+    }
+
+    return responseObject as TranslateIngredientResult;
+  }
+
+  /**
+   * 驗證翻譯結果格式
+   */
+  private _validateTranslateIngredientResult(result: any): boolean {
+    const requiredFields: string[] = ["original", "english"];
+
+    for (const field of requiredFields) {
+      if (!(field in result)) {
+        console.error(`缺少必要欄位: ${field}`);
+        return false;
+      }
+    }
+
+    // 檢查字串欄位
+    if (typeof result.original !== "string" || result.original.trim() === "") {
+      console.error("original 必須為非空字串");
+      return false;
+    }
+
+    if (typeof result.english !== "string" || result.english.trim() === "") {
+      console.error("english 必須為非空字串");
       return false;
     }
 

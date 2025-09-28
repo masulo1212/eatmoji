@@ -6,6 +6,7 @@ import {
   EditRecipeResult,
   MealAnalysisResult,
   SupportedLanguage,
+  TranslateIngredientResult,
 } from "../types/gemini";
 
 /**
@@ -51,6 +52,11 @@ export interface IGeminiService {
     userLanguage: SupportedLanguage,
     env: Env
   ): Promise<EditRecipeResult>;
+
+  translateIngredient(
+    userInput: string,
+    env: Env
+  ): Promise<TranslateIngredientResult>;
 }
 
 /**
@@ -378,11 +384,7 @@ export class GeminiController {
   ): Promise<ApiResponse<ImageAnalysisResult>> {
     try {
       // 調用服務層處理業務邏輯
-      console.log("GeminiController - 開始分析圖片:", {
-        圖片數量: imageFiles.length,
-        語言: userLanguage,
-        是否有額外輸入: !!userInput,
-      });
+      console.log("GeminiController - 開始分析圖片");
 
       const result = await this.geminiService.analyzeImages(
         imageFiles,
@@ -641,5 +643,76 @@ export class GeminiController {
         error: errorMessage,
       };
     }
+  }
+
+  /**
+   * 處理翻譯食材請求
+   * @param userInput 用戶輸入的食材名稱（任何語言）
+   * @param env 環境變數
+   * @returns API 響應格式的翻譯結果
+   */
+  async translateIngredient(
+    userInput: string,
+    env: Env
+  ): Promise<ApiResponse<TranslateIngredientResult>> {
+    try {
+      console.log("GeminiController - 開始翻譯食材:", {
+        input: userInput,
+      });
+
+      const result = await this.geminiService.translateIngredient(
+        userInput,
+        env
+      );
+
+      // 檢查是否有錯誤
+      if (result.error) {
+        return {
+          success: false,
+          error: result.error,
+        };
+      }
+
+      // 返回成功響應
+      return {
+        success: true,
+        result: result,
+      };
+    } catch (error) {
+      console.error("GeminiController - 翻譯食材失敗:", error);
+
+      // 格式化錯誤響應
+      const errorMessage =
+        error instanceof Error ? error.message : "翻譯食材時發生未知錯誤";
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  /**
+   * 驗證 TranslateIngredient 請求參數
+   * @param userInput 用戶輸入
+   * @returns 驗證結果，如果有錯誤則返回錯誤訊息
+   */
+  validateTranslateIngredientRequest(
+    userInput: string
+  ): string | null {
+    // 驗證用戶輸入
+    if (!userInput || typeof userInput !== "string") {
+      return "缺少 input 欄位";
+    }
+
+    if (userInput.trim().length === 0) {
+      return "請輸入食材名稱";
+    }
+
+    if (userInput.trim().length > 200) {
+      return "食材名稱過長，請限制在 200 字元以內";
+    }
+
+    return null; // 驗證通過
   }
 }

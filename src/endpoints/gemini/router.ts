@@ -8,6 +8,7 @@ import { AddIngredient } from "./AddIngredient";
 import { AddRecipeIngredient } from "./AddRecipeIngredient";
 import { EditRecipe } from "./EditRecipe";
 import { Chat } from "./Chat";
+import { TranslateIngredient } from "./TranslateIngredient";
 import type { Env } from "../../bindings";
 
 // 創建 Gemini AI 相關的子路由
@@ -48,6 +49,9 @@ geminiRouter.post("/edit-recipe", EditRecipe);
 
 // 註冊 Chat endpoint
 geminiRouter.post("/chat", Chat);
+
+// 註冊 TranslateIngredient endpoint
+geminiRouter.post("/translate-ingredient", TranslateIngredient);
 
 // 匯出 router 供主應用使用
 export { geminiRouter };
