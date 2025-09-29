@@ -39,7 +39,7 @@
         "FIREBASE_PROJECT_ID": "dishes-82202",
         "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com",
         "FIREBASE_STORAGE_BUCKET": "dishes-82202.firebasestorage.app",
-        "R2_BUCKET_HASH": "611585f5380348e6906a10765454cae7",
+        "R2_BUCKET_HASH": "c987597819334b80b86bc3b90e1d36a4",
         "GOOGLE_API_KEY": "AIzaSyB6Eaw4I34zvFBoLjH8t-B9n6yn9rsTXHo",
         "VERTEX_AI_PROJECT_ID": "dishes-82202",
         "VERTEX_AI_LOCATION": "us-west1",
@@ -54,7 +54,7 @@
       "r2_buckets": [
         {
           "binding": "INGREDIENTS_BUCKET",
-          "bucket_name": "eatmoji-ingredients-prod"
+          "bucket_name": "eatmoji-ingredients-dev"
         }
       ]
     }

@@ -28,6 +28,7 @@ import {
   createAnalyzePrompt,
   generateAddRecipePrompt,
 } from "../utils/analyzePrompts";
+import { ApiRetryUtil } from "../utils/ApiRetryUtil";
 import {
   createAddIngredientPrompt,
   createAddMealPrompt,
@@ -36,7 +37,6 @@ import {
   createTranslateIngredientPrompt,
 } from "../utils/geminiPrompts";
 import { arrayBufferToBase64, getImageMimeType } from "../utils/imageUtils";
-import { ApiRetryUtil } from "../utils/ApiRetryUtil";
 
 /**
  * Gemini AI 服務類
@@ -66,7 +66,7 @@ export class GeminiService implements IGeminiService {
       env,
       prompt,
       generationConfig,
-      "gemini-2.5-flash"
+      "gemini-2.5-flash-lite"
     );
 
     const res: any = (result as any)?.candidates?.[0]?.content?.parts?.[0]
@@ -1176,7 +1176,7 @@ export class GeminiService implements IGeminiService {
       prompt,
       imageParts,
       generationConfig,
-      "gemini-2.5-flash"
+      "gemini-2.5-flash-lite"
     );
 
     const res: any = (result as any)?.candidates?.[0]?.content?.parts?.[0]
@@ -1930,7 +1930,8 @@ export class GeminiService implements IGeminiService {
       const prompt = createTranslateIngredientPrompt(userInput);
 
       // 配置 function calling
-      const generationConfig = this._createTranslateIngredientGenerationConfig();
+      const generationConfig =
+        this._createTranslateIngredientGenerationConfig();
 
       // 調用 AI API（使用 gemini-2.5-flash-lite 快速回應）
       const result = await this._callGeminiAPIWithModel(
@@ -1946,7 +1947,8 @@ export class GeminiService implements IGeminiService {
       console.log("AI API 翻譯回應:", JSON.stringify(res, null, 2));
 
       // 解析回應
-      const translationResult = this._parseTranslateIngredientAIResponse(result);
+      const translationResult =
+        this._parseTranslateIngredientAIResponse(result);
 
       console.log("GeminiService - 翻譯完成:", translationResult);
 

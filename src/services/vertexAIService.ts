@@ -66,7 +66,7 @@ export class VertexAIService implements IGeminiService {
       env,
       prompt,
       generationConfig,
-      "gemini-2.5-flash"
+      "gemini-2.5-flash-lite"
     );
 
     const res: any = (result as any)?.candidates?.[0]?.content?.parts?.[0]
@@ -120,7 +120,6 @@ export class VertexAIService implements IGeminiService {
       throw new Error(`食材分析失敗: ${(error as Error).message}`);
     }
   }
-
 
   /**
    * 調用 Vertex AI API
@@ -578,7 +577,7 @@ export class VertexAIService implements IGeminiService {
       prompt,
       imageParts,
       generationConfig,
-      "gemini-2.5-flash"
+      "gemini-2.5-flash-lite"
     );
 
     const res: any = (result as any)?.candidates?.[0]?.content?.parts?.[0]
@@ -1834,7 +1833,8 @@ export class VertexAIService implements IGeminiService {
       const prompt = createTranslateIngredientPrompt(userInput);
 
       // 配置 function calling
-      const generationConfig = this._createTranslateIngredientGenerationConfig();
+      const generationConfig =
+        this._createTranslateIngredientGenerationConfig();
 
       // 調用 Vertex AI API（使用 gemini-2.5-flash-lite 快速回應）
       const result = await this._callVertexAI(
@@ -1850,7 +1850,8 @@ export class VertexAIService implements IGeminiService {
       console.log("Vertex AI API 翻譯回應:", JSON.stringify(res, null, 2));
 
       // 解析回應
-      const translationResult = this._parseTranslateIngredientAIResponse(result);
+      const translationResult =
+        this._parseTranslateIngredientAIResponse(result);
 
       console.log("VertexAIService - 翻譯完成:", translationResult);
 

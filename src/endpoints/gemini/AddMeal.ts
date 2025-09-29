@@ -10,6 +10,7 @@ import {
 
 // 導入分層架構
 import { GeminiController } from "../../controllers/geminiController";
+import { GeminiService } from "../../services/geminiService";
 import { VertexAIService } from "../../services/vertexAIService";
 
 /**
@@ -114,7 +115,8 @@ export class AddMeal extends OpenAPIRoute {
 
       // 4. 初始化依賴鏈（Service → Controller）
       const vertexAIService = new VertexAIService();
-      const geminiController = new GeminiController(vertexAIService);
+      const geminiService = new GeminiService();
+      const geminiController = new GeminiController(geminiService);
 
       // 5. 調用 Controller 處理業務邏輯
       const result = await geminiController.analyzeMeal(

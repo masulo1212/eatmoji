@@ -7,7 +7,6 @@ import { TranslateIngredientResponseSchema } from "../../types/gemini";
 // 導入分層架構
 import { GeminiController } from "../../controllers/geminiController";
 import { GeminiService } from "../../services/geminiService";
-import { VertexAIService } from "../../services/vertexAIService";
 
 /**
  * TranslateIngredient endpoint - 翻譯食材名稱
@@ -118,10 +117,11 @@ export class TranslateIngredient extends OpenAPIRoute {
       const userInput = requestBody.input;
 
       // 4. 初始化依賴鏈（Service → Controller）
-      const isDev = c.env.NODE_ENV === "development";
-      const geminiService = isDev ? new GeminiService() : new VertexAIService();
+      // const isDev = c.env.NODE_ENV === "development";
+      // const geminiService = isDev ? new GeminiService() : new VertexAIService();
       //有時候會有錯誤 User location is not supported for the API use.
       // const vertexAIService = new VertexAIService();
+      const geminiService = new GeminiService();
       const geminiController = new GeminiController(geminiService);
 
       // 5. 驗證請求參數
