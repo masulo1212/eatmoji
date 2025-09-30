@@ -461,7 +461,7 @@ export class GeminiService implements IGeminiService {
           functionDeclarations: [
             {
               name: "analyze_ingredient",
-              description: "分析使用者描述的食材，提供營養資訊和份量估算",
+              description: "Analyze the ingredient described by the user, providing nutritional information and portion estimation",
               parameters: addIngredientJsonSchema,
             },
           ],
@@ -1176,7 +1176,7 @@ export class GeminiService implements IGeminiService {
       prompt,
       imageParts,
       generationConfig,
-      "gemini-2.5-flash-lite"
+      "gemini-2.5-flash"
     );
 
     const res: any = (result as any)?.candidates?.[0]?.content?.parts?.[0]
@@ -1342,7 +1342,7 @@ export class GeminiService implements IGeminiService {
           functionDeclarations: [
             {
               name: "analyze_food_image",
-              description: "分析食物圖片並返回營養資訊和健康評估",
+              description: "Analyze food images and return nutritional information and health assessment",
               parameters: analyzeImagesJsonSchema,
             },
           ],

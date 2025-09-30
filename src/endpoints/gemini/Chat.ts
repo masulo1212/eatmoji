@@ -115,6 +115,8 @@ export class Chat extends OpenAPIRoute {
       const { input, userData, user_language, historyJson, generateReport } =
         data.body;
 
+      console.log("user_language", user_language);
+
       // 3. 處理可選的 input 參數
       const userInput = input || "";
 

@@ -1327,7 +1327,7 @@ export class VertexAIService implements IGeminiService {
           functionDeclarations: [
             {
               name: "analyze_ingredient",
-              description: "分析使用者描述的食材，提供營養資訊和份量估算",
+              description: "Analyze the ingredient described by the user, providing nutritional information and portion estimation",
               parameters: addIngredientJsonSchema,
             },
           ],

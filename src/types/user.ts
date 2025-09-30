@@ -176,6 +176,7 @@ export interface AppUser {
   bmr?: number | null;
   tdee?: number | null;
   isRecipePublic: boolean;
+  autoCalories?: boolean | null;
 
   createdAt?: Date;
   updatedAt?: Date;
@@ -227,6 +228,7 @@ export const AppUserSchema = z.object({
   bmr: z.number().positive().nullish(),
   tdee: z.number().positive().nullish(),
   isRecipePublic: z.boolean().default(true),
+  autoCalories: z.boolean().optional(),
 
   createdAt: OptionalFirestoreDateSchema,
   updatedAt: OptionalFirestoreDateSchema,
@@ -278,6 +280,7 @@ export const WriteUserSchema = z.object({
   bmr: z.number().positive().nullish(),
   tdee: z.number().positive().nullish(),
   isRecipePublic: z.boolean().default(true),
+  autoCalories: z.boolean().optional(),
 
   // 同步設備管理欄位
   lastLoginAt: OptionalFirestoreDateSchema,

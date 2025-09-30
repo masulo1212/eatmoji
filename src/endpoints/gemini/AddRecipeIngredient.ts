@@ -117,7 +117,7 @@ export class AddRecipeIngredient extends OpenAPIRoute {
       // 3. 初始化依賴鏈（Service → Controller）
       const geminiService = new GeminiService();
       const vertexAIService = new VertexAIService();
-      const geminiController = new GeminiController(vertexAIService);
+      const geminiController = new GeminiController(geminiService);
 
       // 4. 驗證請求參數
       const validationError =

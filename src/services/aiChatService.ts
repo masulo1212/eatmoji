@@ -1,15 +1,13 @@
-import { createChatPrompt, checkDietRecords } from "../utils/chatPrompts";
-import { healthReportJsonSchema } from "../utils/chatSchemas";
-import type { 
-  ChatData, 
-  HealthReportResult, 
-  ChatResult, 
-  ResponseChunk, 
-  GenerationConfig,
-  UserData,
-  ChatHistory 
-} from "../types/chat";
 import type { Env } from "../bindings";
+import type {
+  ChatData,
+  ChatResult,
+  GenerationConfig,
+  HealthReportResult,
+  ResponseChunk,
+} from "../types/chat";
+import { checkDietRecords, createChatPrompt } from "../utils/chatPrompts";
+import { healthReportJsonSchema } from "../utils/chatSchemas";
 
 /**
  * AI 聊天功能服務
@@ -31,12 +29,12 @@ export class AIChatService {
 
     // 檢查是否有飲食記錄
     const hasDietRecords = checkDietRecords(userData);
-    console.log("飲食記錄檢查結果:", {
-      hasDietRecords,
-      userDataKeys: Object.keys(userData),
-      generateReport,
-      userData,
-    });
+    // console.log("飲食記錄檢查結果:", {
+    //   hasDietRecords,
+    //   userDataKeys: Object.keys(userData),
+    //   generateReport,
+    //   userData,
+    // });
 
     // 創建提示詞
     const prompt: string = createChatPrompt(
@@ -55,8 +53,12 @@ export class AIChatService {
     // 報告模式使用非串流方式（需要完整結構化數據）
     const generationConfig: GenerationConfig =
       this._createReportGenerationConfig();
-    console.log("chat prompt", prompt);
-    const result = await this._callGeminiAPI(env, prompt, generationConfig, "gemini-2.5-flash-lite");
+    const result = await this._callGeminiAPI(
+      env,
+      prompt,
+      generationConfig,
+      "gemini-2.5-flash-lite"
+    );
 
     return this._handleReportResponse(result);
   }
@@ -77,7 +79,11 @@ export class AIChatService {
       async start(controller) {
         try {
           // 使用串流方法
-          const response = await service._callGeminiStreamAPI(env, prompt, "gemini-2.5-flash-lite");
+          const response = await service._callGeminiStreamAPI(
+            env,
+            prompt,
+            "gemini-2.5-flash-lite"
+          );
 
           for await (const chunk of response) {
             const chunkText: string | undefined = (chunk as ResponseChunk).text;
@@ -120,16 +126,16 @@ export class AIChatService {
     }
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-    
+
     const requestBody = {
       contents: [
         {
           role: "user",
-          parts: [{ text: prompt }]
-        }
+          parts: [{ text: prompt }],
+        },
       ],
       tools: generationConfig.tools,
-      toolConfig: generationConfig.toolConfig
+      toolConfig: generationConfig.toolConfig,
     };
 
     console.log(`🤖 調用 Google GenAI API, 模型: ${model}`);
@@ -137,11 +143,11 @@ export class AIChatService {
 
     try {
       const response = await fetch(`${apiUrl}?key=${env.GOOGLE_API_KEY}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -172,14 +178,14 @@ export class AIChatService {
     }
 
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent`;
-    
+
     const requestBody = {
       contents: [
         {
           role: "user",
-          parts: [{ text: prompt }]
-        }
-      ]
+          parts: [{ text: prompt }],
+        },
+      ],
     };
 
     console.log(`🤖 調用 Google GenAI 串流 API, 模型: ${model}`);
@@ -187,17 +193,19 @@ export class AIChatService {
 
     try {
       const response = await fetch(`${apiUrl}?key=${env.GOOGLE_API_KEY}`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error("❌ AI 串流 API 調用失敗:", response.status, errorText);
-        throw new Error(`AI 串流 API 調用失敗: ${response.status} ${errorText}`);
+        throw new Error(
+          `AI 串流 API 調用失敗: ${response.status} ${errorText}`
+        );
       }
 
       if (!response.body) {
@@ -205,7 +213,7 @@ export class AIChatService {
       }
 
       console.log("✅ AI 串流 API 調用成功");
-      
+
       // 返回一個 async generator 來處理串流數據
       return this._parseStreamResponse(response.body);
     } catch (error) {
@@ -217,15 +225,17 @@ export class AIChatService {
   /**
    * 解析串流回應
    */
-  private async *_parseStreamResponse(body: ReadableStream<Uint8Array>): AsyncGenerator<ResponseChunk> {
+  private async *_parseStreamResponse(
+    body: ReadableStream<Uint8Array>
+  ): AsyncGenerator<ResponseChunk> {
     const reader = body.getReader();
     const decoder = new TextDecoder();
-    let buffer = '';
+    let buffer = "";
 
     try {
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) {
           // 處理最後剩餘的緩衝區內容
           if (buffer.trim()) {
@@ -235,9 +245,10 @@ export class AIChatService {
         }
 
         buffer += decoder.decode(value, { stream: true });
-        
+
         // 嘗試從緩衝區中提取完整的 JSON 對象
-        const { processedObjects, remainingBuffer } = this._extractJsonObjects(buffer);
+        const { processedObjects, remainingBuffer } =
+          this._extractJsonObjects(buffer);
         buffer = remainingBuffer;
 
         // 處理提取到的 JSON 對象
@@ -253,7 +264,10 @@ export class AIChatService {
   /**
    * 從緩衝區中提取完整的 JSON 對象
    */
-  private _extractJsonObjects(buffer: string): { processedObjects: string[], remainingBuffer: string } {
+  private _extractJsonObjects(buffer: string): {
+    processedObjects: string[];
+    remainingBuffer: string;
+  } {
     const processedObjects: string[] = [];
     let remainingBuffer = buffer;
     let braceCount = 0;
@@ -269,7 +283,7 @@ export class AIChatService {
         continue;
       }
 
-      if (char === '\\' && inString) {
+      if (char === "\\" && inString) {
         escapeNext = true;
         continue;
       }
@@ -280,12 +294,12 @@ export class AIChatService {
       }
 
       if (!inString) {
-        if (char === '{') {
+        if (char === "{") {
           if (braceCount === 0) {
             objectStart = i;
           }
           braceCount++;
-        } else if (char === '}') {
+        } else if (char === "}") {
           braceCount--;
           if (braceCount === 0 && objectStart !== -1) {
             // 找到完整的 JSON 對象
@@ -311,7 +325,7 @@ export class AIChatService {
       if (!trimmed) return;
 
       const parsed = JSON.parse(trimmed);
-      
+
       // 提取文字內容
       if (parsed.candidates && parsed.candidates[0]?.content?.parts) {
         const parts = parsed.candidates[0].content.parts;
@@ -322,7 +336,12 @@ export class AIChatService {
         }
       }
     } catch (parseError) {
-      console.error("解析串流 JSON 失敗:", parseError, "JSON 內容:", jsonBuffer);
+      console.error(
+        "解析串流 JSON 失敗:",
+        parseError,
+        "JSON 內容:",
+        jsonBuffer
+      );
     }
   }
 
@@ -338,7 +357,7 @@ export class AIChatService {
             {
               name: "generate_visual_health_report",
               description:
-                "根據使用者的健康數據，生成用於可視化報告的結構化 JSON。",
+                "Generate structured JSON data for health report visualization based on user health data.",
               parameters: healthReportJsonSchema,
             },
           ],
@@ -381,7 +400,7 @@ export class AIChatService {
       // 處理 function calling 回應
       const call = functionCalls[0];
       if (call && call.name) {
-        console.log(`找到 functionCall: ${call.name}`);
+        // console.log(`找到 functionCall: ${call.name}`);
         if (call.name === "generate_visual_health_report") {
           responseObject = call.args || {};
         }
@@ -391,14 +410,17 @@ export class AIChatService {
       const candidate = result.candidates?.[0];
       if (candidate?.content?.parts) {
         for (const part of candidate.content.parts) {
-          if (part.functionCall && part.functionCall.name === "generate_visual_health_report") {
-            console.log(`找到 functionCall (舊版): ${part.functionCall.name}`);
+          if (
+            part.functionCall &&
+            part.functionCall.name === "generate_visual_health_report"
+          ) {
+            // console.log(`找到 functionCall (舊版): ${part.functionCall.name}`);
             responseObject = part.functionCall.args || {};
             break;
           }
         }
       }
-      
+
       // 如果還是沒找到，嘗試從文字中解析 JSON
       if (Object.keys(responseObject).length === 0) {
         console.log("未找到 functionCall，嘗試從文字解析");
@@ -406,7 +428,7 @@ export class AIChatService {
       }
     }
 
-    console.log("回應對象鍵值:", Object.keys(responseObject));
+    // console.log("回應對象鍵值:", Object.keys(responseObject));
 
     if (Object.keys(responseObject).length === 0) {
       throw new Error("AI 未能生成有效的 JSON 報告");

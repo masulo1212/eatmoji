@@ -161,73 +161,73 @@ export type AddMealResponse = z.infer<typeof AddMealResponseSchema>;
  */
 export const addMealJsonSchema = {
   type: "object",
-  description: "餐點文字分析結果的結構化數據",
+  description: "Structured data for meal text analysis results",
   properties: {
     name: {
       type: "string",
       description:
-        "餐點名稱，應簡潔不含早午晚餐詞語、動詞或形容詞，使用用戶指定的語言",
+        "Meal name, should be concise without breakfast/lunch/dinner terms, verbs or adjectives, using the user's specified language",
     },
     portions: {
       type: "number",
-      description: "整份餐點的份數，預設為 1",
+      description: "Number of portions for the entire meal, default is 1",
     },
     calories: {
       type: "number",
-      description: "總熱量，必須等於 (protein × 4) + (carbs × 4) + (fat × 9)",
+      description: "Total calories, must equal (protein × 4) + (carbs × 4) + (fat × 9)",
     },
     protein: {
       type: "number",
-      description: "總蛋白質含量（克）",
+      description: "Total protein content (grams)",
     },
     carbs: {
       type: "number",
-      description: "總碳水化合物含量（克）",
+      description: "Total carbohydrate content (grams)",
     },
     fat: {
       type: "number",
-      description: "總脂肪含量（克）",
+      description: "Total fat content (grams)",
     },
     ingredients: {
       type: "array",
-      description: "食材成分列表",
+      description: "List of ingredient components",
       items: {
         type: "object",
         properties: {
           name: {
             type: "string",
             description:
-              "食材名稱，使用用戶指定的語言（不是中文，除非用戶語言為中文）",
+              "Ingredient name, using the user's specified language (not Chinese unless the user's language is Chinese)",
           },
           engName: {
             type: "string",
             description:
-              "食材英文名稱，優先使用單數形式，但若該食材的標準英文表達為複數則使用複數（如 'noodles', 'beans', 'oats'），不含括號註解",
+              "English ingredient name, preferably use singular form, but use plural if the ingredient's standard English expression is plural (like 'noodles', 'beans', 'oats'), without parenthetical annotations",
           },
           calories: {
             type: "number",
-            description: "該食材的熱量",
+            description: "Calories of this ingredient",
           },
           protein: {
             type: "number",
-            description: "該食材的蛋白質含量（克）",
+            description: "Protein content of this ingredient (grams)",
           },
           carbs: {
             type: "number",
-            description: "該食材的碳水化合物含量（克）",
+            description: "Carbohydrate content of this ingredient (grams)",
           },
           fat: {
             type: "number",
-            description: "該食材的脂肪含量（克）",
+            description: "Fat content of this ingredient (grams)",
           },
           amountValue: {
             type: "number",
-            description: "食材的數量值",
+            description: "Quantity value of the ingredient",
           },
           amountUnit: {
             type: "string",
             description:
-              "食材的單位（如：份、顆、克等），使用用戶指定的語言（不是中文，除非用戶語言為中文）",
+              "Unit of the ingredient (such as: portions, pieces, grams, etc.), using the user's specified language (not Chinese unless the user's language is Chinese)",
           },
         },
         required: [
@@ -244,17 +244,17 @@ export const addMealJsonSchema = {
     },
     health_assessment: {
       type: "object",
-      description: "健康評估",
+      description: "Health assessment",
       properties: {
         score: {
           type: "integer",
           minimum: 1,
           maximum: 10,
-          description: "健康評分，1-10的整數，越高越健康",
+          description: "Health score, integer from 1-10, higher is healthier",
         },
         pros: {
           type: "array",
-          description: "優點列表，最多4條，僅針對營養相關",
+          description: "List of advantages, maximum 4 items, only nutrition-related",
           items: {
             type: "string",
           },
@@ -262,7 +262,7 @@ export const addMealJsonSchema = {
         },
         cons: {
           type: "array",
-          description: "缺點列表，最多4條，僅針對營養相關",
+          description: "List of disadvantages, maximum 4 items, only nutrition-related",
           items: {
             type: "string",
           },
@@ -273,7 +273,7 @@ export const addMealJsonSchema = {
     },
     error: {
       type: "string",
-      description: "錯誤訊息（當無法分析文字時使用）",
+      description: "Error message (used when unable to analyze text)",
     },
   },
   required: [
@@ -439,30 +439,30 @@ export type AddRecipeIngredientResponse = z.infer<
  */
 export const addRecipeIngredientJsonSchema = {
   type: "object",
-  description: "分析使用者描述的食材，提供營養資訊和多語言翻譯",
+  description: "Analyze user-described ingredients, providing nutritional information and multi-language translations",
   properties: {
     name: {
       type: "object",
       description:
-        "食物名稱的多語言翻譯，簡潔不含動詞或裝飾詞，不含括號註解，不要使用逗號做補充",
+        "Multi-language translations of the food name, concise without verbs or decorative words, no parenthetical annotations, no comma supplements",
       properties: {
-        zh_TW: { type: "string", description: "繁體中文名稱" },
-        zh_CN: { type: "string", description: "簡體中文名稱" },
+        zh_TW: { type: "string", description: "Traditional Chinese name" },
+        zh_CN: { type: "string", description: "Simplified Chinese name" },
         en: {
           type: "string",
           description:
-            "英文名稱，優先使用單數形式，但若該食材的標準英文表達為複數則使用複數（如 'noodles', 'beans', 'oats'），簡潔不含動詞或裝飾詞，不含括號註解，不要使用逗號做補充",
+            "English name, prefer singular form, but use plural if the ingredient's standard English expression is plural (like 'noodles', 'beans', 'oats'), concise without verbs or decorative words, no parenthetical annotations, no comma supplements",
         },
-        ja: { type: "string", description: "日文名稱" },
-        ko: { type: "string", description: "韓文名稱" },
-        vi: { type: "string", description: "越南文名稱" },
-        th: { type: "string", description: "泰文名稱" },
-        ms: { type: "string", description: "馬來文名稱" },
-        id: { type: "string", description: "印尼文名稱" },
-        fr: { type: "string", description: "法文名稱" },
-        de: { type: "string", description: "德文名稱" },
-        es: { type: "string", description: "西班牙文名稱" },
-        pt_BR: { type: "string", description: "葡萄牙文名稱" },
+        ja: { type: "string", description: "Japanese name" },
+        ko: { type: "string", description: "Korean name" },
+        vi: { type: "string", description: "Vietnamese name" },
+        th: { type: "string", description: "Thai name" },
+        ms: { type: "string", description: "Malay name" },
+        id: { type: "string", description: "Indonesian name" },
+        fr: { type: "string", description: "French name" },
+        de: { type: "string", description: "German name" },
+        es: { type: "string", description: "Spanish name" },
+        pt_BR: { type: "string", description: "Portuguese name" },
       },
       required: [
         "zh_TW",
@@ -482,25 +482,25 @@ export const addRecipeIngredientJsonSchema = {
     },
     amountValue: {
       type: "number",
-      description: "食材份量數值，必須為正數",
+      description: "Ingredient amount value, must be a positive number",
     },
     amountUnit: {
       type: "object",
-      description: "食材份量單位的多語言翻譯",
+      description: "Multi-language translations of ingredient amount unit",
       properties: {
-        zh_TW: { type: "string", description: "繁體中文單位" },
-        zh_CN: { type: "string", description: "簡體中文單位" },
-        en: { type: "string", description: "英文單位" },
-        ja: { type: "string", description: "日文單位" },
-        ko: { type: "string", description: "韓文單位" },
-        vi: { type: "string", description: "越南文單位" },
-        th: { type: "string", description: "泰文單位" },
-        ms: { type: "string", description: "馬來文單位" },
-        id: { type: "string", description: "印尼文單位" },
-        fr: { type: "string", description: "法文單位" },
-        de: { type: "string", description: "德文單位" },
-        es: { type: "string", description: "西班牙文單位" },
-        pt_BR: { type: "string", description: "葡萄牙文單位" },
+        zh_TW: { type: "string", description: "Traditional Chinese unit" },
+        zh_CN: { type: "string", description: "Simplified Chinese unit" },
+        en: { type: "string", description: "English unit" },
+        ja: { type: "string", description: "Japanese unit" },
+        ko: { type: "string", description: "Korean unit" },
+        vi: { type: "string", description: "Vietnamese unit" },
+        th: { type: "string", description: "Thai unit" },
+        ms: { type: "string", description: "Malay unit" },
+        id: { type: "string", description: "Indonesian unit" },
+        fr: { type: "string", description: "French unit" },
+        de: { type: "string", description: "German unit" },
+        es: { type: "string", description: "Spanish unit" },
+        pt_BR: { type: "string", description: "Portuguese unit" },
       },
       required: [
         "zh_TW",
@@ -521,23 +521,23 @@ export const addRecipeIngredientJsonSchema = {
     calories: {
       type: "number",
       description:
-        "總熱量（kcal），必須嚴格按照公式計算：(protein × 4) + (carbs × 4) + (fat × 9)",
+        "Total calories (kcal), must be strictly calculated using the formula: (protein × 4) + (carbs × 4) + (fat × 9)",
     },
     protein: {
       type: "number",
-      description: "蛋白質含量（克），必須為非負數",
+      description: "Protein content (grams), must be non-negative",
     },
     carbs: {
       type: "number",
-      description: "碳水化合物含量（克），必須為非負數",
+      description: "Carbohydrate content (grams), must be non-negative",
     },
     fat: {
       type: "number",
-      description: "脂肪含量（克），必須為非負數",
+      description: "Fat content (grams), must be non-negative",
     },
     error: {
       type: "string",
-      description: "當無法辨識為食物時的錯誤訊息",
+      description: "Error message when unable to identify as food",
     },
   },
   required: [
@@ -556,46 +556,46 @@ export const addRecipeIngredientJsonSchema = {
  */
 export const addIngredientJsonSchema = {
   type: "object",
-  description: "分析使用者描述的食材，提供營養資訊和份量估算",
+  description: "Analyze the ingredient described by the user, providing nutritional information and portion estimation",
   properties: {
     name: {
       type: "string",
       description:
-        "食物名稱，使用指定語言回應，簡潔不含動詞或裝飾詞，不含括號註解，不要使用逗號做補充",
+        "Food name, respond in the specified language, concise without verbs or decorative words, no parenthetical notes, no comma supplements",
     },
     engName: {
       type: "string",
       description:
-        "食物英文名稱，優先使用單數形式，但若該食材的標準英文表達為複數則使用複數（如 'noodles', 'beans', 'oats'），簡潔不含動詞或裝飾詞，不含括號註解，不要使用逗號做補充",
+        "English food name, preferably use singular form, but use plural if the standard English expression for the ingredient is plural (e.g. 'noodles', 'beans', 'oats'), concise without verbs or decorative words, no parenthetical notes, no comma supplements",
     },
     amountValue: {
       type: "number",
-      description: "食材份量數值，必須為正數",
+      description: "Ingredient portion value, must be a positive number",
     },
     amountUnit: {
       type: "string",
-      description: "食材份量單位，如：g、ml、個、片等，使用指定語言回應",
+      description: "Ingredient portion unit, such as: g, ml, pieces, slices, etc., respond in the specified language",
     },
     calories: {
       type: "number",
       description:
-        "總熱量（kcal），必須嚴格按照公式計算：(protein × 4) + (carbs × 4) + (fat × 9)",
+        "Total calories (kcal), must be calculated strictly according to the formula: (protein × 4) + (carbs × 4) + (fat × 9)",
     },
     protein: {
       type: "number",
-      description: "蛋白質含量（克），必須為非負數",
+      description: "Protein content (grams), must be non-negative",
     },
     carbs: {
       type: "number",
-      description: "碳水化合物含量（克），必須為非負數",
+      description: "Carbohydrate content (grams), must be non-negative",
     },
     fat: {
       type: "number",
-      description: "脂肪含量（克），必須為非負數",
+      description: "Fat content (grams), must be non-negative",
     },
     error: {
       type: "string",
-      description: "當無法辨識為食物時的錯誤訊息",
+      description: "Error message when unable to identify as food",
     },
   },
   required: [

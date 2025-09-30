@@ -1,12 +1,10 @@
-import { AIChatService } from "../services/aiChatService";
-import type { 
-  ChatData, 
-  HealthReportResult, 
-  ChatResult, 
-  UserData,
-  ChatHistory 
-} from "../types/chat";
 import type { Env } from "../bindings";
+import type {
+  ChatData,
+  ChatHistory,
+  HealthReportResult,
+  UserData,
+} from "../types/chat";
 
 /**
  * AI Chat Service 介面 - 定義業務邏輯操作
@@ -55,28 +53,24 @@ export class AIChatController {
 
       const result = await this.aiChatService.processChat(chatData, env);
 
-      // 如果結果是 ReadableStream（串流模式），直接返回
+      // 檢查結果類型並正確處理
       if (result instanceof ReadableStream) {
-        console.log("AIChatController - 返回串流響應");
+        // 串流模式 - 直接返回 ReadableStream
         return result;
+      } else {
+        // 非串流模式（報告模式） - 包裝成 ApiResponse
+        return {
+          success: true,
+          result: result as HealthReportResult,
+        };
       }
-
-      console.log("AIChatController - 聊天處理完成:", {
-        響應類型: "健康報告",
-        包含欄位: Object.keys(result),
-      });
-
-      // 非串流模式（報告模式）
-      return {
-        success: true,
-        result: result as HealthReportResult,
-      };
     } catch (error) {
       console.error("AIChatController - 聊天處理失敗:", error);
-      
+
       // 格式化錯誤響應
-      const errorMessage = error instanceof Error ? error.message : "處理聊天時發生未知錯誤";
-      
+      const errorMessage =
+        error instanceof Error ? error.message : "處理聊天時發生未知錯誤";
+
       return {
         success: false,
         error: errorMessage,
@@ -90,7 +84,8 @@ export class AIChatController {
    * @returns 驗證結果，如果有錯誤則返回錯誤訊息
    */
   validateChatRequest(chatData: ChatData): string | null {
-    const { userInput, userData, userLanguage, history, generateReport } = chatData;
+    const { userInput, userData, userLanguage, history, generateReport } =
+      chatData;
 
     // 驗證用戶輸入類型（允許空字符串）
     if (typeof userInput !== "string") {
@@ -108,8 +103,19 @@ export class AIChatController {
 
     // 驗證語言代碼
     const supportedLanguages = [
-      "zh_TW", "zh_CN", "en", "ja", "ko", "vi", 
-      "th", "ms", "id", "fr", "de", "es", "pt_BR"
+      "zh_TW",
+      "zh_CN",
+      "en",
+      "ja",
+      "ko",
+      "vi",
+      "th",
+      "ms",
+      "id",
+      "fr",
+      "de",
+      "es",
+      "pt_BR",
     ];
 
     if (!supportedLanguages.includes(userLanguage)) {
@@ -137,10 +143,14 @@ export class AIChatController {
   extractChatDataFromFormData(formData: FormData): ChatData {
     return {
       userInput: formData.get("input")?.toString() || "",
-      userData: this._parseJsonSafely(formData.get("userData")?.toString() || "{}") as UserData,
+      userData: this._parseJsonSafely(
+        formData.get("userData")?.toString() || "{}"
+      ) as UserData,
       userLanguage: formData.get("user_language")?.toString() || "zh_TW",
-      history: this._parseJsonSafely(formData.get("historyJson")?.toString() || "[]") as ChatHistory[],
-      generateReport: formData.get("generateReport")?.toString() === "true"
+      history: this._parseJsonSafely(
+        formData.get("historyJson")?.toString() || "[]"
+      ) as ChatHistory[],
+      generateReport: formData.get("generateReport")?.toString() === "true",
     };
   }
 
@@ -153,8 +163,11 @@ export class AIChatController {
     try {
       return JSON.parse(jsonString);
     } catch (error) {
-      console.warn("JSON 解析失敗:", error instanceof Error ? error.message : String(error));
-      return jsonString.startsWith('[') ? [] : {};
+      console.warn(
+        "JSON 解析失敗:",
+        error instanceof Error ? error.message : String(error)
+      );
+      return jsonString.startsWith("[") ? [] : {};
     }
   }
 
@@ -166,11 +179,11 @@ export class AIChatController {
   createStreamResponse(stream: ReadableStream<Uint8Array>): Response {
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
       },
     });
   }
@@ -183,9 +196,9 @@ export class AIChatController {
   createJsonResponse(response: ApiResponse<HealthReportResult>): Response {
     return new Response(JSON.stringify(response), {
       headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
       },
       status: response.success ? 200 : 400,
     });
@@ -205,9 +218,9 @@ export class AIChatController {
 
     return new Response(JSON.stringify(response), {
       headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
       },
       status: status,
     });

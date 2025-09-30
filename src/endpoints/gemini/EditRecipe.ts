@@ -35,30 +35,30 @@ export class EditRecipe extends OpenAPIRoute {
             schema: z.object({
               name: z
                 .string()
-                .min(1, "食譜名稱不能為空")
-                .max(100, "食譜名稱不能超過 100 個字符")
+                .min(1, "Recipe name cannot be empty")
+                .max(100, "Recipe name cannot exceed 100 characters")
                 .openapi({
-                  description: "食譜名稱",
-                  example: "番茄炒蛋",
+                  description: "Recipe name",
+                  example: "Scrambled Eggs with Tomatoes",
                 }),
               description: z
                 .string()
-                .min(1, "食譜描述不能為空")
-                .max(500, "食譜描述不能超過 500 個字符")
+                .min(1, "Recipe description cannot be empty")
+                .max(500, "Recipe description cannot exceed 500 characters")
                 .openapi({
-                  description: "食譜描述",
-                  example: "簡單易做的家常菜，營養豐富",
+                  description: "Recipe description",
+                  example: "A simple and nutritious home-cooked dish",
                 }),
-              step_texts: z.array(z.string().min(1, "步驟不能為空")).min(1, "步驟列表不能為空").openapi({
-                description: "製作步驟陣列",
-                example: ["打散雞蛋，加入少許鹽", "熱鍋下油，倒入蛋液炒熟盛起", "再下油爆香番茄", "加入炒蛋拌勻即可"],
+              step_texts: z.array(z.string().min(1, "Step cannot be empty")).min(1, "Step list cannot be empty").openapi({
+                description: "Array of cooking steps",
+                example: ["Beat eggs and add a little salt", "Heat oil in pan, pour in egg mixture and scramble", "Add more oil and stir-fry tomatoes", "Add scrambled eggs and mix well"],
               }),
               user_language: z
                 .string()
                 .optional()
                 .default("zh_TW")
                 .openapi({
-                  description: "用戶語言代碼（預設：zh_TW）",
+                  description: "User language code (default: zh_TW)",
                   example: "zh_TW",
                   enum: [
                     "zh_TW",
@@ -189,7 +189,7 @@ export class EditRecipe extends OpenAPIRoute {
             errors: [
               {
                 code: 400,
-                message: "步驟列表不能為空",
+                message: "Step list cannot be empty",
               },
             ],
           },
@@ -222,7 +222,7 @@ export class EditRecipe extends OpenAPIRoute {
             errors: [
               {
                 code: 400,
-                message: result.error || "編輯食譜時發生錯誤",
+                message: result.error || "Error occurred while editing recipe",
               },
             ],
           },
@@ -259,7 +259,7 @@ export class EditRecipe extends OpenAPIRoute {
             errors: [
               {
                 code: 400,
-                message: "請求格式錯誤，請使用 application/json 格式",
+                message: "Invalid request format, please use application/json format",
               },
             ],
           },
@@ -289,11 +289,11 @@ export class EditRecipe extends OpenAPIRoute {
   ): string | null {
     // 驗證食譜名稱
     if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return "食譜名稱不能為空";
+      return "Recipe name cannot be empty";
     }
 
     if (name.trim().length > 100) {
-      return "食譜名稱不能超過 100 個字符";
+      return "Recipe name cannot exceed 100 characters";
     }
 
     // 驗證食譜描述
@@ -302,33 +302,33 @@ export class EditRecipe extends OpenAPIRoute {
       typeof description !== "string" ||
       description.trim().length === 0
     ) {
-      return "食譜描述不能為空";
+      return "Recipe description cannot be empty";
     }
 
     if (description.trim().length > 500) {
-      return "食譜描述不能超過 500 個字符";
+      return "Recipe description cannot exceed 500 characters";
     }
 
     // 驗證步驟陣列
     if (!Array.isArray(stepTexts)) {
-      return "步驟列表格式不正確";
+      return "Step list format is incorrect";
     }
 
     if (stepTexts.length === 0) {
-      return "步驟列表不能為空";
+      return "Step list cannot be empty";
     }
 
     if (stepTexts.length > 20) {
-      return "步驟數量不能超過 20 個";
+      return "Number of steps cannot exceed 20";
     }
 
     for (let i = 0; i < stepTexts.length; i++) {
       const step = stepTexts[i];
       if (!step || typeof step !== "string" || step.trim().length === 0) {
-        return `步驟 ${i + 1} 不能為空`;
+        return `Step ${i + 1} cannot be empty`;
       }
       if (step.trim().length > 500) {
-        return `步驟 ${i + 1} 不能超過 500 個字符`;
+        return `Step ${i + 1} cannot exceed 500 characters`;
       }
     }
 
@@ -349,7 +349,7 @@ export class EditRecipe extends OpenAPIRoute {
       "pt_BR",
     ];
     if (!supportedLanguages.includes(userLanguage)) {
-      return "不支援的語言代碼";
+      return "Unsupported language code";
     }
 
     return null;

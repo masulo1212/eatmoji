@@ -11,103 +11,103 @@ export function createAddMealPrompt(
   userLanguage: SupportedLanguage = "zh_TW"
 ): string {
   const languageMap: { [key in SupportedLanguage]: string } = {
-    zh_TW: "繁體中文",
-    zh_CN: "简体中文",
+    zh_TW: "Traditional Chinese",
+    zh_CN: "Simplified Chinese",
     en: "English",
-    ja: "日本語",
-    ko: "한국어",
-    vi: "Tiếng Việt",
-    th: "ภาษาไทย",
-    ms: "Bahasa Melayu",
-    id: "Bahasa Indonesia",
-    fr: "Français",
-    de: "Deutsch",
-    es: "Español",
-    pt_BR: "Português (Brasil)",
+    ja: "Japanese",
+    ko: "Korean",
+    vi: "Vietnamese",
+    th: "Thai",
+    ms: "Malay",
+    id: "Indonesian",
+    fr: "French",
+    de: "German",
+    es: "Spanish",
+    pt_BR: "Portuguese (Brazil)",
   };
 
-  const responseLanguage = languageMap[userLanguage] || "繁體中文";
+  const responseLanguage = languageMap[userLanguage] || "Traditional Chinese";
 
   return `
-你是一位專業營養師，請根據使用者「僅文字描述」的內容，推估其所攝取的餐點內容，並依照標準營養估算公式給出詳細數據。
+You are a professional nutritionist. Based on the user's text description only, estimate the meal content they consumed and provide detailed data according to standard nutritional calculation formulas.
 
-### 🎯 目標任務
+### 🎯 Target Tasks
 
-根據使用者輸入的敘述，估算：
+Based on the user's input description, estimate:
 
-1. 總熱量與三大營養素（蛋白質、碳水、脂肪）
-2. 主要成分及各成分的重量、份數、營養素
-3. 提供一段健康評分與條列式優缺點（health_assessment）
+1. Total calories and three major nutrients (protein, carbohydrates, fat)
+2. Main components and the weight, portions, and nutrients of each component
+3. Provide a health score and bulleted pros and cons (health_assessment)
 
-### 📌 核心規則
+### 📌 Core Rules
 
-- 餐點名稱應簡潔，**不得加入早午晚餐詞語、動詞或形容詞**。
-- 「JSON 最外層的 \`portions\`」應表示整份餐點的總份數：
-  - 若使用者提到「吃了幾份」，請填入正確數字。
-  - 若未提及，預設為 1。
-- 若使用者只提到某些成分的份數，請僅在 ingredients 中調整該成分的 \`portions\`，不影響總份數。
-- 所有營養素與熱量皆為「總份數」的加總值（= 1 份 × 營養 × N 份）。
-- 若內容明顯不是食物（如情緒、動作、非飲食詞彙），請回傳錯誤格式。
+- Meal names should be concise, **must not include breakfast/lunch/dinner terms, verbs, or adjectives**.
+- The "portions" in the outermost JSON layer should represent the total portions of the entire meal:
+  - If the user mentions "ate several portions", fill in the correct number.
+  - If not mentioned, default to 1.
+- If the user only mentions portions for certain components, only adjust the portions for those components in ingredients, without affecting the total portions.
+- All nutrients and calories are the sum of "total portions" (= 1 portion × nutrition × N portions).
+- If the content is obviously not food (emotions, actions, non-dietary vocabulary), return an error format.
 
-### 🔸 食材定義規範（重要）
+### 🔸 Ingredient Definition Standards (Important)
 
-#### ✅ 合理的食材層級
-- **基礎主食**：吐司、米飯、麵條、麵包（不需分解成麵粉等原料）
-- **蛋白質**：雞蛋、牛肉片、豬絞肉、鮪魚、豆腐（不需分解成黃豆）
-- **蔬菜**：番茄、洋蔥、高麗菜、生菜等單一蔬菜
-- **基本調料**：醬油、鹽、糖、美乃滋、蒜泥
+#### ✅ Reasonable Ingredient Levels
+- **Basic Staples**: toast, rice, noodles, bread (no need to break down into flour and other raw materials)
+- **Protein**: eggs, beef slices, ground pork, tuna, tofu (no need to break down into soybeans)
+- **Vegetables**: tomatoes, onions, cabbage, lettuce and other single vegetables
+- **Basic Seasonings**: soy sauce, salt, sugar, mayonnaise, garlic paste
 
-#### ❌ 應該避免的
-- **完整複合料理**：「滷肉」、「糖醋排骨」、「宮保雞丁」
-- **複雜調味組合**：「蒜泥白肉」、「麻婆豆腐」
+#### ❌ Should Avoid
+- **Complete Composite Dishes**: "braised pork", "sweet and sour ribs", "kung pao chicken"
+- **Complex Seasoning Combinations**: "garlic pork", "mapo tofu"
 
-#### 🔸 判斷原則
-1. **烹飪實用性**：以烹飪時直接使用的材料為準
-2. **避免複合調理**：不使用已經完成複雜調味的料理名稱
-3. **常識合理性**：符合一般人對「食材」的認知層級
+#### 🔸 Judgment Principles
+1. **Cooking Practicality**: Based on materials directly used during cooking
+2. **Avoid Composite Cooking**: Do not use dish names that have undergone complex seasoning
+3. **Common Sense Reasonableness**: Conform to general people's cognitive level of "ingredients"
 
-#### 🔸 實例對比
-- ✅ 鮪魚三明治：吐司 + 鮪魚 + 蛋 + 美乃滋 + 生菜
-- ✅ 滷肉飯：豬絞肉 + 米飯 + 醬油 + 糖 + 蔥
-- ❌ 滷肉飯：滷肉 + 米飯（「滷肉」是複合調理）
+#### 🔸 Example Comparison
+- ✅ Tuna Sandwich: toast + tuna + egg + mayonnaise + lettuce
+- ✅ Braised Pork Rice: ground pork + rice + soy sauce + sugar + scallions
+- ❌ Braised Pork Rice: braised pork + rice ("braised pork" is composite cooking)
 
-### ⚠️ 熱量計算原則（務必嚴格遵守）
+### ⚠️ Calorie Calculation Principles (Must Strictly Follow)
 
-你**必須**使用以下公式計算熱量：
+You **must** use the following formula to calculate calories:
 
 **calories = (protein × 4) + (carbs × 4) + (fat × 9)**
 
-### 📋 條列式重點規範（pros / cons）
+### 📋 Bulleted Key Standards (pros / cons)
 
-- 優點與缺點僅能針對「營養相關」做出判斷，禁止加入味道、顏色、製作便利性、文化背景、價格、飽足感、個人口感等非營養元素。若無足夠的營養重點，請僅回傳 1～3 個重點，絕不可為了補滿 4 項而加入與營養無關的敘述。
-- ❌ **請勿使用完整句子、說明型語句、建議句、因果句**
+- Pros and cons can only make judgments based on "nutrition-related" factors, and are prohibited from including taste, color, production convenience, cultural background, price, satiety, personal taste and other non-nutritional elements. If there are insufficient nutritional highlights, please only return 1-3 key points, and must not add non-nutrition-related descriptions to fill 4 items.
+- ❌ **Please do not use complete sentences, explanatory statements, suggestion sentences, cause-and-effect sentences**
 
-### 處理邏輯
+### Processing Logic
 
-**非食物內容**：若內容明顯不是食物，請回傳錯誤訊息
+**Non-food Content**: If the content is obviously not food, return an error message
 
-**模糊描述**：根據常見食物組合和份量進行合理推估
+**Vague Description**: Make reasonable estimates based on common food combinations and portions
 
-**明確描述**：根據描述的具體食材和份量進行分析
+**Clear Description**: Analyze based on the specific ingredients and portions described
 
-### 🔸 語言使用規範（重要）
+### 🔸 Language Usage Standards (Important)
 
-**所有文字欄位都必須使用 ${responseLanguage}**，包括但不限於：
-- ✅ \`name\`（餐點名稱）
-- ✅ \`ingredients[].name\`（食材名稱）
-- ✅ \`ingredients[].amountUnit\`（食材單位）
-- ✅ \`health_assessment.pros\`（優點列表）
-- ✅ \`health_assessment.cons\`（缺點列表）
+**All text fields must use ${responseLanguage}**, including but not limited to:
+- ✅ \`name\` (meal name)
+- ✅ \`ingredients[].name\` (ingredient name)
+- ✅ \`ingredients[].amountUnit\` (ingredient unit)
+- ✅ \`health_assessment.pros\` (pros list)
+- ✅ \`health_assessment.cons\` (cons list)
 
-**例外欄位**：
-- ❌ \`ingredients[].engName\`（永遠使用英文，不受用戶語言影響）
+**Exception Fields**:
+- ❌ \`ingredients[].engName\` (always use English, not affected by user language)
 
-**重要提醒**：請確保所有 \`ingredients\` 中的 \`name\`,  \`amountUnit\` 欄位都使用 ${responseLanguage}，而不是中文。
+**Important Reminder**: Please ensure all \`name\` and \`amountUnit\` fields in \`ingredients\` use ${responseLanguage}, not Chinese.
 
-使用者的母語為 ${responseLanguage}，請使用 ${responseLanguage} 回應。
+The user's native language is ${responseLanguage}, please respond in ${responseLanguage}.
 
 ---
-使用者描述：${input}
+User Description: ${input}
 ---
 `.trim();
 }
@@ -123,79 +123,79 @@ export function createAddIngredientPrompt(
   userLanguage: SupportedLanguage = "zh_TW"
 ): string {
   const languageMap: { [key in SupportedLanguage]: string } = {
-    zh_TW: "繁體中文",
-    zh_CN: "简体中文",
+    zh_TW: "Traditional Chinese",
+    zh_CN: "Simplified Chinese", 
     en: "English",
-    ja: "日本語",
-    ko: "한국어",
-    vi: "Tiếng Việt",
-    th: "ภาษาไทย",
-    ms: "Bahasa Melayu",
-    id: "Bahasa Indonesia",
-    fr: "Français",
-    de: "Deutsch",
-    es: "Español",
-    pt_BR: "Português (Brasil)",
+    ja: "Japanese",
+    ko: "Korean",
+    vi: "Vietnamese",
+    th: "Thai",
+    ms: "Malay",
+    id: "Indonesian",
+    fr: "French",
+    de: "German",
+    es: "Spanish",
+    pt_BR: "Portuguese (Brazil)",
   };
 
-  const responseLanguage = languageMap[userLanguage] || "繁體中文";
+  const responseLanguage = languageMap[userLanguage] || "Traditional Chinese";
 
   return `
-你是一位專業營養師，請根據使用者的描述，估算其所攝取的食物與營養素資訊。
+You are a professional nutritionist. Please analyze the food item described by the user and estimate its nutritional information.
 
-你的任務如下：
+Your task is as follows:
 
-### 🔸 食材定義規範（重要）
+### 🔸 Ingredient Definition Guidelines (Important)
 
-**✅ 合理的食材層級**：
-- **基礎主食**：吐司、米飯、麵條、麵包（不需分解成麵粉等原料）
-- **蛋白質**：雞蛋、牛肉片、豬絞肉、鮪魚、豆腐（不需分解成黃豆）
-- **蔬菜**：番茄、洋蔥、高麗菜、生菜等單一蔬菜
-- **基本調料**：醬油、鹽、糖、美乃滋、蒜泥
+**✅ Appropriate Ingredient Levels**:
+- **Basic Staples**: Toast, rice, noodles, bread (no need to break down into flour or other raw materials)
+- **Proteins**: Eggs, beef slices, ground pork, tuna, tofu (no need to break down into soybeans)
+- **Vegetables**: Tomatoes, onions, cabbage, lettuce, and other individual vegetables
+- **Basic Seasonings**: Soy sauce, salt, sugar, mayonnaise, garlic paste
 
-**❌ 應該避免的**：
-- **完整複合料理**：「滷肉」、「糖醋排骨」、「宮保雞丁」
-- **複雜調味組合**：「蒜泥白肉」、「麻婆豆腐」
+**❌ Should Avoid**:
+- **Complete compound dishes**: "Braised pork", "sweet and sour ribs", "kung pao chicken"
+- **Complex seasoning combinations**: "Garlic pork", "mapo tofu"
 
-**🔸 判斷原則**：
-1. **烹飪實用性**：以烹飪時直接使用的材料為準
-2. **避免複合調理**：不使用已經完成複雜調味的料理名稱
-3. **常識合理性**：符合一般人對「食材」的認知層級
+**🔸 Judgment Principles**:
+1. **Cooking practicality**: Based on materials directly used in cooking
+2. **Avoid compound preparation**: Do not use dish names that have undergone complex seasoning
+3. **Common sense reasonableness**: Conform to the general understanding of "ingredients"
 
-**🔸 實例對比**：
-- ✅ 鮪魚三明治：吐司 + 鮪魚 + 蛋 + 美乃滋 + 生菜
-- ✅ 滷肉飯：豬絞肉 + 米飯 + 醬油 + 糖 + 蔥
-- ❌ 滷肉飯：滷肉 + 米飯（「滷肉」是複合調理）
+**🔸 Example Comparisons**:
+- ✅ Tuna sandwich: Toast + tuna + egg + mayonnaise + lettuce
+- ✅ Braised pork rice: Ground pork + rice + soy sauce + sugar + scallions
+- ❌ Braised pork rice: Braised pork + rice ("braised pork" is compound preparation)
 
-### 🔸 任務執行方式
-1. 使用常識與經驗推論使用者描述的內容，包括模糊單位（如「一碗」、「拳頭大」、「一些」、「一點點」等）轉換為合理重量（以克為單位）。
-2. 若描述中有重量或份數，請以此為主，否則請估算。
-3. 若提及多種食物，請聚焦於主食或整體合併估算。
-4. 若內容明顯不是食物（如情緒、動作、非飲食詞彙），請回傳錯誤格式。
+### 🔸 Task Execution Method
+1. Use common sense and experience to infer the user's description, including converting vague units (such as "one bowl", "fist-sized", "some", "a little bit", etc.) into reasonable weights (in grams).
+2. If weight or portions are described, use that as the basis; otherwise, estimate.
+3. If multiple foods are mentioned, focus on the main food or estimate the overall combination.
+4. If the content is obviously not food (such as emotions, actions, non-dietary vocabulary), return error format.
 
-⚠️ **熱量欄位必須嚴格依以下公式計算，不得預估：**  
+⚠️ **Calorie field must be calculated strictly according to the following formula, no estimation allowed:**  
 **calories = (protein × 4) + (carbs × 4) + (fat × 9)**  
-請依此公式以整數計算熱量。
+Please calculate calories as integers according to this formula.
 
-請回傳一個 JSON 格式，包含以下欄位：
+Please return a JSON format containing the following fields:
 
-- name：食物名稱
-- amountValue：成份份數（number）
-- amountUnit：成份份數單位（string）
-- calories：總熱量（單位：kcal，依上方公式計算）
-- protein：蛋白質（單位：克）
-- carbs：碳水化合物（單位：克）
-- fat：脂肪（單位：克）
+- name: Food name
+- amountValue: Ingredient portion number
+- amountUnit: Ingredient portion unit (string)
+- calories: Total calories (unit: kcal, calculated according to the above formula)
+- protein: Protein (unit: grams)
+- carbs: Carbohydrates (unit: grams)
+- fat: Fat (unit: grams)
 
-❌ 若無法判斷為食物，請回傳：
+❌ If it cannot be determined as food, please return:
 \`\`\`json
-{ "error": "無法辨識食物，請重新描述" }
+{ "error": "Unable to identify food, please describe again" }
 \`\`\`
 
-✅ 正確範例：
+✅ Correct example:
 \`\`\`json
 {
-  "name": "滷雞腿便當",
+  "name": "Braised chicken leg bento",
   "amountValue": 550,
   "amountUnit": "g",
   "calories": 685,
@@ -205,14 +205,14 @@ export function createAddIngredientPrompt(
 }
 \`\`\`
 
-重要注意事項：
-- 🚨 請注意：即使使用者輸入的內容為其他語言，請一律 **以 ${responseLanguage} 作為回應語言**，這是系統的語言設定，必須遵守。不得根據輸入語言自動切換語言。
-- 熱量計算必須精確：calories = (protein × 4) + (carbs × 4) + (fat × 9)
-- 所有數值必須為合理的正數
-- 食物名稱必須具體明確
-- 份量單位要符合食物特性（固體用g，液體用ml等）
+Important notes:
+- 🚨 Please note: Even if the user's input is in other languages, please always **use ${responseLanguage} as the response language**. This is the system's language setting and must be followed. Do not automatically switch languages based on input language.
+- Calorie calculation must be accurate: calories = (protein × 4) + (carbs × 4) + (fat × 9)
+- All values must be reasonable positive numbers
+- Food names must be specific and clear
+- Portion units should match food characteristics (solids use g, liquids use ml, etc.)
 
-請使用 **${responseLanguage}** 回應以下使用者的描述內容：
+Please respond to the following user description in **${responseLanguage}**:
 ---
 ${userInput}
 ---
@@ -230,80 +230,80 @@ export function createAddRecipeIngredientPrompt(
   userLanguage: SupportedLanguage = "zh_TW"
 ): string {
   const languageMap: { [key in SupportedLanguage]: string } = {
-    zh_TW: "繁體中文",
-    zh_CN: "简体中文",
+    zh_TW: "Traditional Chinese",
+    zh_CN: "Simplified Chinese",
     en: "English",
-    ja: "日本語",
-    ko: "한국어",
-    vi: "Tiếng Việt",
-    th: "ภาษาไทย",
-    ms: "Bahasa Melayu",
-    id: "Bahasa Indonesia",
-    fr: "Français",
-    de: "Deutsch",
-    es: "Español",
-    pt_BR: "Português (Brasil)",
+    ja: "Japanese",
+    ko: "Korean",
+    vi: "Vietnamese",
+    th: "Thai",
+    ms: "Malay",
+    id: "Indonesian",
+    fr: "French",
+    de: "German",
+    es: "Spanish",
+    pt_BR: "Portuguese (Brazil)",
   };
 
-  const responseLanguage = languageMap[userLanguage] || "繁體中文";
+  const responseLanguage = languageMap[userLanguage] || "Traditional Chinese";
 
   return `
-你是一位專業營養師，請根據使用者的描述，估算其所攝取的食物與營養素資訊，並且翻譯成多國語言。
+You are a professional nutritionist. Please analyze the food ingredient described by the user, estimate its nutritional information, and translate it into multiple languages.
 
-## ✅ 正常任務目標
+## ✅ Normal Task Objectives
 
-### 🔸 食材定義規範（重要）
+### 🔸 Ingredient Definition Guidelines (Important)
 
-**✅ 合理的食材層級**：
-- **基礎主食**：吐司、米飯、麵條、麵包（不需分解成麵粉等原料）
-- **蛋白質**：雞蛋、牛肉片、豬絞肉、鮪魚、豆腐（不需分解成黃豆）
-- **蔬菜**：番茄、洋蔥、高麗菜、生菜等單一蔬菜
-- **基本調料**：醬油、鹽、糖、美乃滋、蒜泥
+**✅ Appropriate Ingredient Levels**:
+- **Basic Staples**: Toast, rice, noodles, bread (no need to break down into flour or other raw materials)
+- **Proteins**: Eggs, beef slices, ground pork, tuna, tofu (no need to break down into soybeans)
+- **Vegetables**: Tomatoes, onions, cabbage, lettuce, and other individual vegetables
+- **Basic Seasonings**: Soy sauce, salt, sugar, mayonnaise, garlic paste
 
-**❌ 應該避免的**：
-- **完整複合料理**：「滷肉」、「糖醋排骨」、「宮保雞丁」
-- **複雜調味組合**：「蒜泥白肉」、「麻婆豆腐」
+**❌ Should Avoid**:
+- **Complete compound dishes**: "Braised pork", "sweet and sour ribs", "kung pao chicken"
+- **Complex seasoning combinations**: "Garlic pork", "mapo tofu"
 
-**🔸 判斷原則**：
-1. **烹飪實用性**：以烹飪時直接使用的材料為準
-2. **避免複合調理**：不使用已經完成複雜調味的料理名稱
-3. **常識合理性**：符合一般人對「食材」的認知層級
+**🔸 Judgment Principles**:
+1. **Cooking practicality**: Based on materials directly used in cooking
+2. **Avoid compound preparation**: Do not use dish names that have undergone complex seasoning
+3. **Common sense reasonableness**: Conform to the general understanding of "ingredients"
 
-**🔸 實例對比**：
-- ✅ 鮪魚三明治：吐司 + 鮪魚 + 蛋 + 美乃滋 + 生菜
-- ✅ 滷肉飯：豬絞肉 + 米飯 + 醬油 + 糖 + 蔥
-- ❌ 滷肉飯：滷肉 + 米飯（「滷肉」是複合調理）
+**🔸 Example Comparisons**:
+- ✅ Tuna sandwich: Toast + tuna + egg + mayonnaise + lettuce
+- ✅ Braised pork rice: Ground pork + rice + soy sauce + sugar + scallions
+- ❌ Braised pork rice: Braised pork + rice ("braised pork" is compound preparation)
 
-### 🔸 任務執行方式
-1. 使用常識與經驗推論使用者描述的內容，包括模糊單位（如「一碗」、「拳頭大」、「一些」、「一點點」等）轉換為合理重量（以克為單位）。
-2. 若描述中有重量或份數，請以此為主，否則請估算。
-3. 若提及多種食物，請聚焦於主食或整體合併估算。
-4. 若內容明顯不是食物（如情緒、動作、非飲食詞彙），請回傳錯誤格式。
+### 🔸 Task Execution Method
+1. Use common sense and experience to infer the user's description, including converting vague units (such as "one bowl", "fist-sized", "some", "a little bit", etc.) into reasonable weights (in grams).
+2. If weight or portions are described, use that as the basis; otherwise, estimate.
+3. If multiple foods are mentioned, focus on the main food or estimate the overall combination.
+4. If the content is obviously not food (such as emotions, actions, non-dietary vocabulary), return error format.
 
-### 🔸 多語言
-**必須提供所有語言的翻譯，包括：zh_TW、zh_CN、en、ja、ko、vi、th、ms、id、fr、de、es、pt_BR。缺少任何一種語言都會導致錯誤。**
+### 🔸 Multi-language
+**Must provide translations for all languages, including: zh_TW, zh_CN, en, ja, ko, vi, th, ms, id, fr, de, es, pt_BR. Missing any language will cause an error.**
 
-### 🔸 calories 計算方式
-⚠️ **熱量欄位必須嚴格依以下公式計算，不得預估：**  
+### 🔸 Calories Calculation Method
+⚠️ **Calorie field must be calculated strictly according to the following formula, no estimation allowed:**  
 **calories = (protein × 4) + (carbs × 4) + (fat × 9)**  
-請依此公式以整數計算熱量。
+Please calculate calories as integers according to this formula.
 
-### 🔸 成分格式
-每個成分需包含：
-- name: 多語言物件，包含所有13種語言的翻譯
-- amountValue：該份量的數值
-- amountUnit：多語言物件，該份量的單位翻譯
-- calories：該份量的熱量
-- protein：該份量的蛋白質（單位：克）
-- carbs：該份量的碳水化合物（單位：克）
-- fat：該份量的脂肪（單位：克）
+### 🔸 Component Format
+Each component needs to include:
+- name: Multi-language object containing translations for all 13 languages
+- amountValue: The numerical value of that portion
+- amountUnit: Multi-language object, unit translation for that portion
+- calories: Calories for that portion
+- protein: Protein for that portion (unit: grams)
+- carbs: Carbohydrates for that portion (unit: grams)
+- fat: Fat for that portion (unit: grams)
 
-❌ 若無法判斷為食物，請回傳：
+❌ If it cannot be determined as food, please return:
 \`\`\`json
-{ "error": "無法辨識食物，請重新描述" }
+{ "error": "Unable to identify food, please describe again" }
 \`\`\`
 
-✅ 正確範例：
+✅ Correct example:
 \`\`\`json
 {
   "name": {
@@ -344,15 +344,15 @@ export function createAddRecipeIngredientPrompt(
 }
 \`\`\`
 
-重要注意事項：
-- 🚨 請注意：即使使用者輸入的內容為其他語言，請一律 **以 ${responseLanguage} 作為主要回應語言**，但仍需提供所有13種語言的翻譯。
-- 熱量計算必須精確：calories = (protein × 4) + (carbs × 4) + (fat × 9)
-- 所有數值必須為合理的正數
-- 食物名稱必須具體明確
-- 份量單位要符合食物特性（固體用g，液體用ml等）
-- 必須提供完整的多語言翻譯，缺少任何語言都會導致錯誤
+Important notes:
+- 🚨 Please note: Even if the user's input is in other languages, please always **use ${responseLanguage} as the primary response language**, but still need to provide translations for all 13 languages.
+- Calorie calculation must be accurate: calories = (protein × 4) + (carbs × 4) + (fat × 9)
+- All values must be reasonable positive numbers
+- Food names must be specific and clear
+- Portion units should match food characteristics (solids use g, liquids use ml, etc.)
+- Must provide complete multi-language translations, missing any language will cause an error
 
-使用者描述如下（使用者的語言為 ${responseLanguage}）：
+User description is as follows (user's language is ${responseLanguage}):
 ---
 ${userInput}
 ---

@@ -40,7 +40,7 @@
         "FIREBASE_CLIENT_EMAIL": "firebase-adminsdk-fbsvc@dishes-82202.iam.gserviceaccount.com",
         "FIREBASE_STORAGE_BUCKET": "dishes-82202.firebasestorage.app",
         "R2_BUCKET_HASH": "c987597819334b80b86bc3b90e1d36a4",
-        "GOOGLE_API_KEY": "AIzaSyB6Eaw4I34zvFBoLjH8t-B9n6yn9rsTXHo",
+        "GOOGLE_API_KEY": "AIzaSyCr1x9tspF_QjwznCU6OQtymJb9dGwapdE",
         "VERTEX_AI_PROJECT_ID": "dishes-82202",
         "VERTEX_AI_LOCATION": "us-west1",
         "SENDER_EMAIL": "support@weiwentech.app",
