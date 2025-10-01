@@ -46,7 +46,10 @@ export class WeightService implements IWeightService {
    * @param userId 使用者 ID
    * @param weightData 體重記錄資料
    */
-  async addWeight(userId: string, weightData: Partial<WeightEntry>): Promise<void> {
+  async addWeight(
+    userId: string,
+    weightData: Partial<WeightEntry>
+  ): Promise<void> {
     // 業務邏輯驗證
     if (!userId || userId.trim() === "") {
       throw new Error("使用者 ID 不能為空");
@@ -76,10 +79,10 @@ export class WeightService implements IWeightService {
     }
 
     // 驗證日期合理性 - 不能是未來日期
-    const entryDate = new Date(entry.dateId);
-    if (entryDate > new Date()) {
-      throw new Error("體重記錄日期不能是未來日期");
-    }
+    // const entryDate = new Date(entry.dateId);
+    // if (entryDate > new Date()) {
+    //   throw new Error("體重記錄日期不能是未來日期");
+    // }
 
     // 驗證體重值的合理範圍（業務規則）
     if (entry.weight < 1 || entry.weight > 1000) {
@@ -167,10 +170,12 @@ export class WeightService implements IWeightService {
    */
   private applyBusinessRules(weights: WeightEntry[]): WeightEntry[] {
     // 業務規則：過濾異常資料
-    return weights.filter(weight => {
+    return weights.filter((weight) => {
       // 確保體重值在合理範圍內
       if (weight.weight <= 0 || weight.weight > 1000) {
-        console.warn(`過濾異常體重記錄: ${weight.dateId}, 體重: ${weight.weight}`);
+        console.warn(
+          `過濾異常體重記錄: ${weight.dateId}, 體重: ${weight.weight}`
+        );
         return false;
       }
       return true;
@@ -184,8 +189,8 @@ export class WeightService implements IWeightService {
    */
   private formatDateToId(date: Date): string {
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
 
@@ -202,7 +207,10 @@ export class WeightService implements IWeightService {
 
     // 進一步驗證日期是否真實存在
     const date = new Date(dateId);
-    return date instanceof Date && !isNaN(date.getTime()) && 
-           this.formatDateToId(date) === dateId;
+    return (
+      date instanceof Date &&
+      !isNaN(date.getTime()) &&
+      this.formatDateToId(date) === dateId
+    );
   }
 }

@@ -30,7 +30,7 @@
         "SMTP_HOST": "smtp.gmail.com",
         "SMTP_PORT": 587,
         "SMTP_SECURE": false,
-        "TOTAL_UPLOAD_LIMIT_FREE": 2,
+        "TOTAL_UPLOAD_LIMIT_FREE": 100,
         "REVENUECAT_GOOGLE_API_KEY": "goog_GfxrUaGGUthluwEZBLqJtQQwlSZ",
         "REVENUECAT_APPLE_API_KEY": "appl_fMvFDhQZagQIYPihtywJfoqzRAh"
       },
