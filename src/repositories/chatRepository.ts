@@ -54,6 +54,14 @@ export interface IChatRepository {
    * @param message 聊天訊息
    */
   sendMessage(userId: string, message: ChatMessage): Promise<void>;
+
+  /**
+   * 根據聊天 ID 獲取聊天記錄
+   * @param userId 使用者 ID
+   * @param chatId 聊天 ID
+   * @returns 聊天記錄或 null
+   */
+  getChatById(userId: string, chatId: string): Promise<ChatReport | null>;
 }
 
 /**
