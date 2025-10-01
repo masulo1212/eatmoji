@@ -12,6 +12,12 @@ export interface IChatService {
   getChatMessages(userId: string, chatId: string): Promise<ChatMessage[]>;
   sendMessage(userId: string, message: ChatMessage): Promise<void>;
   getChatById(userId: string, chatId: string): Promise<ChatReport | null>;
+  initializeChatData(userId: string): Promise<{
+    hasChats: boolean;
+    latestChat: ChatReport | null;
+    totalCount: number;
+    messages?: ChatMessage[];
+  }>;
 }
 
 /**

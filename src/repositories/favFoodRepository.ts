@@ -142,7 +142,7 @@ export class FirestoreFavFoodRepository implements IFavFoodRepository {
       const newFoodEntry: FoodEntry = {
         id: diary.id,
         name: diary.name,
-        brand: diary.brand,
+        brand: diary.brand || undefined,
         calories: diary.calories,
         protein: diary.protein,
         carbs: diary.carbs,

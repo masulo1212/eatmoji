@@ -123,7 +123,7 @@ export class TokenDelete extends OpenAPIRoute {
 
       // 檢查業務邏輯結果
       if (!response.success) {
-        let statusCode = 400; // 預設為請求錯誤
+        let statusCode: 400 | 401 | 500 = 400; // 預設為請求錯誤
         
         // 根據錯誤訊息判斷狀態碼
         if (response.error?.includes("使用者 ID")) {

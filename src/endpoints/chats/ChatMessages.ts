@@ -178,7 +178,7 @@ export class ChatMessages extends OpenAPIRoute {
       // 檢查業務邏輯結果
       if (!response.success) {
         // 判斷錯誤類型
-        let statusCode = 500;
+        let statusCode: 400 | 404 | 500 = 500;
         if (response.error?.includes("找不到") || response.error?.includes("沒有權限")) {
           statusCode = 404;
         } else if (response.error?.includes("不能為空") || response.error?.includes("無效")) {

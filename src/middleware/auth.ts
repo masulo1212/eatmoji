@@ -1,6 +1,6 @@
-import { Next } from 'hono';
-import { AppContext } from '../types';
-import { getUserIdFromContext } from '../services/authService';
+import { Next } from "hono";
+import { getUserIdFromContext } from "../services/authService";
+import { AppContext } from "../types";
 
 /**
  * Authentication middleware for protecting endpoints
@@ -8,20 +8,20 @@ import { getUserIdFromContext } from '../services/authService';
  */
 export async function authMiddleware(c: AppContext, next: Next) {
   const userId = await getUserIdFromContext(c);
-  
+
   if (!userId) {
     return c.json(
       {
         success: false,
-        errors: [{ code: 401, message: 'Authentication required' }],
+        errors: [{ code: 401, message: "Authentication required" }],
       },
       401
     );
   }
-  
+
   // Add user ID to context for use in handlers
-  c.set('userId', userId);
-  
+  c.set("userId", userId);
+
   await next();
 }
 
@@ -31,10 +31,10 @@ export async function authMiddleware(c: AppContext, next: Next) {
  */
 export async function optionalAuthMiddleware(c: AppContext, next: Next) {
   const userId = await getUserIdFromContext(c);
-  
+
   // Add user ID to context if available (convert null to undefined for type consistency)
-  c.set('userId', userId || undefined);
-  
+  c.set("userId", userId || undefined);
+
   await next();
 }
 
@@ -44,7 +44,7 @@ export async function optionalAuthMiddleware(c: AppContext, next: Next) {
  * @returns User ID or null if not set
  */
 export function getUserIdFromMiddleware(c: AppContext): string | null {
-  return c.get('userId') || null;
+  return c.get("userId") || null;
 }
 
 /**
@@ -54,11 +54,16 @@ export function getUserIdFromMiddleware(c: AppContext): string | null {
  * @throws Error if user ID is not available
  */
 export function requireUserIdFromMiddleware(c: AppContext): string {
-  const userId = c.get('userId');
-  
+  const userId = c.get("userId");
+
   if (!userId) {
-    throw new Error('User ID not available in context. Ensure auth middleware is applied.');
+    console.log(
+      "User ID not available in context. Ensure auth middleware is applied."
+    );
+    throw new Error(
+      "User ID not available in context. Ensure auth middleware is applied."
+    );
   }
-  
+
   return userId;
 }
