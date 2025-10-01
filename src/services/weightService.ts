@@ -79,7 +79,6 @@ export class WeightService implements IWeightService {
     }
 
     // 驗證日期合理性 - 不能是未來日期
-    // const entryDate = new Date(entry.dateId);
     // if (entryDate > new Date()) {
     //   throw new Error("體重記錄日期不能是未來日期");
     // }

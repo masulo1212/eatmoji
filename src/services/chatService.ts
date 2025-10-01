@@ -1,5 +1,5 @@
 import { IChatRepository } from "../repositories/chatRepository";
-import { ChatReport, ChatMessage } from "../types/chat";
+import { ChatMessage, ChatReport } from "../types/chat";
 
 /**
  * Chat Service 介面 - 定義業務邏輯操作
@@ -57,7 +57,10 @@ export class ChatService implements IChatService {
    * - 套用業務規則和預設值
    * - 對應 Dart addChat 的邏輯
    */
-  async addChat(userId: string, chatReport: Partial<ChatReport>): Promise<ChatReport> {
+  async addChat(
+    userId: string,
+    chatReport: Partial<ChatReport>
+  ): Promise<ChatReport> {
     // 業務邏輯驗證
     if (!userId || userId.trim() === "") {
       throw new Error("使用者 ID 不能為空");
@@ -84,9 +87,12 @@ export class ChatService implements IChatService {
       }
 
       // 委派給 Repository 執行創建
-      const createdChat = await this.chatRepository.addChat(userId, processedChatReport);
+      const createdChat = await this.chatRepository.addChat(
+        userId,
+        processedChatReport
+      );
       console.log(`✅ 業務邏輯處理完成，聊天記錄已創建: ${createdChat.id}`);
-      
+
       return createdChat;
     } catch (error) {
       console.error("Service: 添加聊天記錄時發生業務邏輯錯誤:", error);
@@ -110,7 +116,7 @@ export class ChatService implements IChatService {
     try {
       // 委派給 Repository 執行查詢
       const latestChat = await this.chatRepository.getLatestChat(userId);
-      
+
       // 額外的業務邏輯檢查（如果需要）
       if (latestChat) {
         // 可以在這裡添加額外的業務邏輯處理
@@ -140,7 +146,7 @@ export class ChatService implements IChatService {
     try {
       // 委派給 Repository 執行查詢
       const count = await this.chatRepository.getTotalChatCount(userId);
-      
+
       // 套用業務規則
       return this.applyChatCountBusinessRules(count);
     } catch (error) {
@@ -157,7 +163,10 @@ export class ChatService implements IChatService {
    * - 確保訊息安全性
    * - 對應 Dart getChatMessages 的邏輯
    */
-  async getChatMessages(userId: string, chatId: string): Promise<ChatMessage[]> {
+  async getChatMessages(
+    userId: string,
+    chatId: string
+  ): Promise<ChatMessage[]> {
     // 業務邏輯驗證
     if (!userId || userId.trim() === "") {
       throw new Error("使用者 ID 不能為空");
@@ -175,8 +184,11 @@ export class ChatService implements IChatService {
       }
 
       // 委派給 Repository 執行查詢
-      const messages = await this.chatRepository.getChatMessages(userId, chatId);
-      
+      const messages = await this.chatRepository.getChatMessages(
+        userId,
+        chatId
+      );
+
       // 套用業務規則（如訊息過濾、排序等）
       return this.applyMessagesBusinessRules(messages);
     } catch (error) {
@@ -224,7 +236,7 @@ export class ChatService implements IChatService {
 
       // 委派給 Repository 執行發送
       await this.chatRepository.sendMessage(userId, processedMessage);
-      
+
       console.log(`✅ 業務邏輯處理完成，訊息已發送到聊天: ${message.chatId}`);
     } catch (error) {
       console.error("Service: 發送訊息時發生業務邏輯錯誤:", error);
@@ -238,7 +250,10 @@ export class ChatService implements IChatService {
    * - 驗證使用者權限
    * - 確保使用者只能存取自己的聊天記錄
    */
-  async getChatById(userId: string, chatId: string): Promise<ChatReport | null> {
+  async getChatById(
+    userId: string,
+    chatId: string
+  ): Promise<ChatReport | null> {
     // 業務邏輯驗證
     if (!userId || userId.trim() === "") {
       throw new Error("使用者 ID 不能為空");
@@ -251,10 +266,10 @@ export class ChatService implements IChatService {
     try {
       // 委派給 Repository 執行查詢
       const chat = await this.chatRepository.getChatById(userId, chatId);
-      
+
       // 安全檢查：確保聊天屬於該使用者（雖然 Repository 已經通過 userId 路徑限制了）
       // 這裡是額外的安全驗證
-      
+
       return chat;
     } catch (error) {
       console.error("Service: 獲取聊天記錄時發生業務邏輯錯誤:", error);
@@ -267,7 +282,9 @@ export class ChatService implements IChatService {
    * @param chatReport 原始聊天報告資料
    * @returns 處理後的聊天報告資料
    */
-  private applyCreateChatBusinessRules(chatReport: Partial<ChatReport>): Partial<ChatReport> {
+  private applyCreateChatBusinessRules(
+    chatReport: Partial<ChatReport>
+  ): Partial<ChatReport> {
     const processed = { ...chatReport };
 
     // 確保必要欄位存在並有預設值
@@ -384,7 +401,7 @@ export class ChatService implements IChatService {
 
     // 清理角色欄位
     processed.role = processed.role.toLowerCase().trim();
-    
+
     // 驗證角色欄位
     const validRoles = ["user", "assistant", "system"];
     if (!validRoles.includes(processed.role)) {
@@ -407,17 +424,17 @@ export class ChatService implements IChatService {
     try {
       // 檢查是否有聊天記錄
       const hasChats = await this.hasAnyChats(userId);
-      
+
       if (hasChats) {
         // 有聊天記錄，載入最新的聊天和其訊息
         const latestChat = await this.getLatestChat(userId);
         const totalCount = await this.getTotalChatCount(userId);
-        
+
         let messages: ChatMessage[] = [];
         if (latestChat) {
           messages = await this.getChatMessages(userId, latestChat.id);
         }
-        
+
         return {
           hasChats: true,
           latestChat,
