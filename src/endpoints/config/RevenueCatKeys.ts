@@ -1,6 +1,6 @@
 import { OpenAPIRoute } from "chanfana";
 import { z } from "zod";
-import { AppContext } from "../types";
+import { AppContext } from "../../types";
 
 /**
  * RevenueCat Keys 回應格式
