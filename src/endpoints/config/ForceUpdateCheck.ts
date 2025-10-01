@@ -26,7 +26,7 @@ export const ForceUpdateCheckResponseSchema = z.object({
 
 /**
  * ForceUpdateCheck endpoint - 檢查是否需要強制更新
- * 
+ *
  * 邏輯：
  * - 接收用戶當前版本號
  * - 從 Firebase config/config 文檔讀取強制更新版本
@@ -43,7 +43,7 @@ export class ForceUpdateCheck extends OpenAPIRoute {
         version: z
           .string()
           .describe("用戶當前應用版本，格式：x.y.z（如：1.2.3）")
-          .regex(/^\d+\.\d+\.\d+/, "版本格式必須為 x.y.z")
+          .regex(/^\d+\.\d+\.\d+/, "版本格式必須為 x.y.z"),
       }),
     },
     responses: {
@@ -106,14 +106,17 @@ export class ForceUpdateCheck extends OpenAPIRoute {
       const data = await this.getValidatedData<typeof this.schema>();
       const { version: currentVersion } = data.query;
 
-      console.log("ForceUpdateCheck - currentVersion:", currentVersion);
+      // console.log("ForceUpdateCheck - currentVersion:", currentVersion);
 
       // 從 Firebase 獲取強制更新版本
       const requiredVersion = await this.getForceUpdateVersionFromFirebase(c);
-      console.log("ForceUpdateCheck - requiredVersion:", requiredVersion);
+      // console.log("ForceUpdateCheck - requiredVersion:", requiredVersion);
 
       // 檢查是否需要強制更新
-      const forceUpdateResult = this.checkForceUpdate(currentVersion, requiredVersion);
+      const forceUpdateResult = this.checkForceUpdate(
+        currentVersion,
+        requiredVersion
+      );
 
       // 返回成功響應
       return c.json({
@@ -138,15 +141,21 @@ export class ForceUpdateCheck extends OpenAPIRoute {
    * 檢查是否需要強制更新
    * 對應 Flutter checkForceUpdate() 方法的邏輯
    */
-  private checkForceUpdate(currentVersion: string, requiredVersion: string): ForceUpdateCheckResult {
+  private checkForceUpdate(
+    currentVersion: string,
+    requiredVersion: string
+  ): ForceUpdateCheckResult {
     try {
-      const versionComparison = this.compareVersions(currentVersion, requiredVersion);
-      
+      const versionComparison = this.compareVersions(
+        currentVersion,
+        requiredVersion
+      );
+
       // 如果當前版本 < 強制更新版本，需要更新
       const forceUpdate = versionComparison < 0;
-      
-      console.log("ForceUpdateCheck - versionComparison:", versionComparison);
-      console.log("ForceUpdateCheck - forceUpdate:", forceUpdate);
+
+      // console.log("ForceUpdateCheck - versionComparison:", versionComparison);
+      // console.log("ForceUpdateCheck - forceUpdate:", forceUpdate);
 
       return {
         forceUpdate,
@@ -167,21 +176,27 @@ export class ForceUpdateCheck extends OpenAPIRoute {
   /**
    * 從 Firebase 獲取強制更新版本
    */
-  private async getForceUpdateVersionFromFirebase(c: AppContext): Promise<string> {
+  private async getForceUpdateVersionFromFirebase(
+    c: AppContext
+  ): Promise<string> {
     try {
       const firestore = getFirestoreFromContext(c);
       const configDoc = await firestore.doc("config/config").get();
-      
+
       if (!configDoc.exists) {
-        console.warn("ForceUpdateCheck - Firebase config 文檔不存在，使用預設版本");
+        console.warn(
+          "ForceUpdateCheck - Firebase config 文檔不存在，使用預設版本"
+        );
         return "1.0.0";
       }
 
       const configData = configDoc.data();
       const forceUpdateVersion = configData?.forceUpdateVersion;
-      
+
       if (!forceUpdateVersion || typeof forceUpdateVersion !== "string") {
-        console.warn("ForceUpdateCheck - Firebase config 中沒有 forceUpdateVersion，使用預設版本");
+        console.warn(
+          "ForceUpdateCheck - Firebase config 中沒有 forceUpdateVersion，使用預設版本"
+        );
         return "1.0.0";
       }
 
@@ -196,7 +211,7 @@ export class ForceUpdateCheck extends OpenAPIRoute {
   /**
    * 比較版本字串（語義化版本比較）
    * 對應 Flutter _compareVersions() 方法
-   * 
+   *
    * @param current 當前版本
    * @param remote 遠端版本
    * @returns -1 表示 current < remote，0 表示相等，1 表示 current > remote
@@ -205,15 +220,15 @@ export class ForceUpdateCheck extends OpenAPIRoute {
     try {
       // 移除版本號中的後綴（如 -dev, -beta 等）
       const cleanVersion = (version: string): string => {
-        return version.replace(/-.*$/, '');
+        return version.replace(/-.*$/, "");
       };
 
       const currentParts = cleanVersion(current)
-        .split('.')
+        .split(".")
         .map((part) => parseInt(part, 10) || 0);
-      
+
       const remoteParts = cleanVersion(remote)
-        .split('.')
+        .split(".")
         .map((part) => parseInt(part, 10) || 0);
 
       // 補齊版本號至相同長度

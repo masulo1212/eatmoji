@@ -24,7 +24,7 @@ export const MaintenanceCheckResponseSchema = z.object({
 
 /**
  * MaintenanceCheck endpoint - 檢查系統是否正在維修
- * 
+ *
  * 邏輯：
  * - 從 Firebase config/config 文檔讀取維修狀態
  * - 返回是否正在維修和可選的結束時間
@@ -81,7 +81,7 @@ export class MaintenanceCheck extends OpenAPIRoute {
       // 檢查維修狀態
       const maintenanceResult = await this.checkMaintenanceStatus(c);
 
-      console.log("MaintenanceCheck - maintenanceResult:", maintenanceResult);
+      // console.log("MaintenanceCheck - maintenanceResult:", maintenanceResult);
 
       // 返回成功響應
       return c.json({
@@ -106,13 +106,17 @@ export class MaintenanceCheck extends OpenAPIRoute {
    * 檢查系統維修狀態
    * 對應 Flutter _checkMaintenance() 方法的邏輯
    */
-  private async checkMaintenanceStatus(c: AppContext): Promise<MaintenanceCheckResult> {
+  private async checkMaintenanceStatus(
+    c: AppContext
+  ): Promise<MaintenanceCheckResult> {
     try {
       const firestore = getFirestoreFromContext(c);
       const configDoc = await firestore.doc("config/config").get();
-      
+
       if (!configDoc.exists) {
-        console.warn("MaintenanceCheck - Firebase config 文檔不存在，使用預設狀態");
+        console.warn(
+          "MaintenanceCheck - Firebase config 文檔不存在，使用預設狀態"
+        );
         return { maintenanceEnabled: false };
       }
 
@@ -120,8 +124,8 @@ export class MaintenanceCheck extends OpenAPIRoute {
       const maintenanceEnabled = configData?.maintenanceEnabled || false;
       const maintenanceEndTime = configData?.maintenanceEndTime || "";
 
-      console.log("MaintenanceCheck - maintenanceEnabled:", maintenanceEnabled);
-      console.log("MaintenanceCheck - maintenanceEndTime:", maintenanceEndTime);
+      // console.log("MaintenanceCheck - maintenanceEnabled:", maintenanceEnabled);
+      // console.log("MaintenanceCheck - maintenanceEndTime:", maintenanceEndTime);
 
       // 構建回應結果
       const result: MaintenanceCheckResult = {
@@ -129,7 +133,11 @@ export class MaintenanceCheck extends OpenAPIRoute {
       };
 
       // 只有在有結束時間且不為空時才添加到回應中
-      if (maintenanceEndTime && typeof maintenanceEndTime === "string" && maintenanceEndTime.trim() !== "") {
+      if (
+        maintenanceEndTime &&
+        typeof maintenanceEndTime === "string" &&
+        maintenanceEndTime.trim() !== ""
+      ) {
         result.maintenanceEndTime = maintenanceEndTime.trim();
       }
 

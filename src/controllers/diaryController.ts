@@ -19,6 +19,7 @@ export interface IDiaryService {
   ): Promise<Diary>;
   deleteDiary(userId: string, diaryId: string): Promise<void>;
   calculateStreak(userId: string): Promise<number>;
+  getTotalDiaryCount(userId: string): Promise<number>;
 }
 
 /**
@@ -320,6 +321,31 @@ export class DiaryController {
         success: false,
         error:
           error instanceof Error ? error.message : "計算連續天數時發生未知錯誤",
+      };
+    }
+  }
+
+  /**
+   * 取得使用者的總 diary 記錄數量（包括軟刪除的記錄）
+   * 用於檢查上傳限制
+   * @param userId 使用者 ID
+   * @returns API 響應格式
+   */
+  async getTotalDiaryCount(userId: string): Promise<ApiResponse<number>> {
+    try {
+      // 調用 Service 層
+      const totalCount = await this.diaryService.getTotalDiaryCount(userId);
+
+      return {
+        success: true,
+        result: totalCount,
+      };
+    } catch (error) {
+      console.error("Controller: 取得總記錄數失敗:", error);
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "取得總記錄數時發生未知錯誤",
       };
     }
   }

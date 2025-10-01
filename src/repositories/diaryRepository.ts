@@ -55,6 +55,13 @@ export interface IDiaryRepository {
    * @returns 連續天數
    */
   calculateStreak(userId: string): Promise<number>;
+
+  /**
+   * 計算使用者的所有 diary 記錄總數（包括軟刪除的記錄）
+   * @param userId 使用者 ID
+   * @returns 總記錄數量
+   */
+  countAllByUser(userId: string): Promise<number>;
 }
 
 /**
@@ -367,6 +374,42 @@ export class FirestoreDiaryRepository implements IDiaryRepository {
     } catch (error) {
       console.error("Repository: 計算連續天數時發生錯誤:", error);
       throw new Error("無法計算連續天數");
+    }
+  }
+
+  /**
+   * 計算使用者的所有 diary 記錄總數（包括軟刪除的記錄）
+   * 用於檢查上傳限制，避免用戶通過刪除記錄繞過限制
+   * 只計算用戶主動創建的記錄（沒有 source 欄位或 source 為空）
+   */
+  async countAllByUser(userId: string): Promise<number> {
+    try {
+      const collection = this.getUserDiaryCollection(userId);
+      
+      // 獲取用戶的所有記錄，不使用 WHERE 條件
+      // 包括軟刪除的記錄，在代碼中進行篩選
+      const snapshot = await collection.get();
+      
+      // 篩選出用戶主動創建的記錄
+      let count = 0;
+      snapshot.docs.forEach((doc) => {
+        const data = doc.data();
+        if (!data) return;
+        
+        const source = data.source;
+        // 計算以下情況的記錄：
+        // 1. 沒有 source 欄位（undefined）
+        // 2. source 為 null
+        // 3. source 為空字串或只有空白字符
+        if (source === undefined || source === null || (typeof source === 'string' && source.trim() === "")) {
+          count++;
+        }
+      });
+      
+      return count;
+    } catch (error) {
+      console.error("Repository: 計算總記錄數時發生錯誤:", error);
+      throw new Error("無法計算總記錄數");
     }
   }
 

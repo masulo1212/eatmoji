@@ -330,6 +330,34 @@ export class DiaryService implements IDiaryService {
   }
 
   /**
+   * 取得使用者的總 diary 記錄數量（包括軟刪除的記錄）
+   * 用於檢查上傳限制，避免用戶通過刪除記錄繞過限制
+   * 業務邏輯：
+   * - 驗證使用者權限
+   * - 委派給 Repository 執行計算
+   * 
+   * @param userId 使用者 ID
+   * @returns 總記錄數量
+   */
+  async getTotalDiaryCount(userId: string): Promise<number> {
+    // 業務邏輯驗證
+    if (!userId || userId.trim() === "") {
+      throw new Error("使用者 ID 不能為空");
+    }
+
+    try {
+      // 委派給 Repository 執行記錄計算
+      const totalCount = await this.diaryRepository.countAllByUser(userId);
+      
+      // 套用業務規則（例如：最大記錄數限制等）
+      return this.applyCountBusinessRules(totalCount);
+    } catch (error) {
+      console.error("Service: 取得總記錄數時發生業務邏輯錯誤:", error);
+      throw new Error("取得總記錄數失敗");
+    }
+  }
+
+  /**
    * 套用連續天數的業務規則
    * @param streak 原始連續天數
    * @returns 處理後的連續天數
@@ -338,6 +366,16 @@ export class DiaryService implements IDiaryService {
     // 例如：最大連續天數限制
     const MAX_STREAK = 9999;
     return Math.min(streak, MAX_STREAK);
+  }
+
+  /**
+   * 套用記錄數量的業務規則
+   * @param count 原始記錄數量
+   * @returns 處理後的記錄數量
+   */
+  private applyCountBusinessRules(count: number): number {
+    // 確保返回值不為負數
+    return Math.max(count, 0);
   }
 
   /**

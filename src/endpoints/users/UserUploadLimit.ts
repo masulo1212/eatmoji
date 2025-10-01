@@ -248,8 +248,8 @@ export class UserUploadLimit extends OpenAPIRoute {
   }
 
   /**
-   * 計算用戶所有有效的 diary 記錄數量
-   * 對應 Flutter _getTotalDiaryCount() 方法
+   * 計算用戶所有有效的 diary 記錄數量（包括軟刪除的記錄）
+   * 只計算 source 為空的記錄（用戶主動創建的記錄）
    */
   private async getTotalDiaryCount(
     userId: string,
@@ -262,27 +262,22 @@ export class UserUploadLimit extends OpenAPIRoute {
       const diaryService = new DiaryService(diaryRepository);
       const diaryController = new DiaryController(diaryService);
 
-      // 獲取用戶所有記錄，從 2020 年開始查詢（確保涵蓋所有記錄）
-      const startDate = "2025-08-01";
-      const diariesResponse = await diaryController.getDiaries(
-        userId,
-        startDate
+      // 直接獲取總記錄數量（包括軟刪除的記錄）
+      const totalCountResponse = await diaryController.getTotalDiaryCount(
+        userId
       );
-
-      if (!diariesResponse.success || !diariesResponse.result) {
-        console.log("UserUploadLimit - 獲取 diary 記錄失敗");
+      console.log("UserUploadLimit - totalCountResponse:", totalCountResponse);
+      if (
+        !totalCountResponse.success ||
+        totalCountResponse.result === undefined
+      ) {
+        console.log("UserUploadLimit - 獲取總記錄數量失敗");
         return 0;
       }
 
-      const allDiaries = diariesResponse.result;
-
-      // 過濾出有效的記錄（source 為空的記錄代表是用戶主動創建的）
-      const validDiaries = allDiaries.filter((diary) => {
-        return !diary.source || diary.source.trim() === "";
-      });
-
-      console.log("UserUploadLimit - 用戶有效記錄數量:", validDiaries.length);
-      return validDiaries.length;
+      const totalCount = totalCountResponse.result;
+      console.log("UserUploadLimit - 用戶總記錄數量:", totalCount);
+      return totalCount;
     } catch (error) {
       console.error("UserUploadLimit - 獲取總記錄數量失敗:", error);
       return 0; // 出錯時返回 0，避免阻擋用戶操作
