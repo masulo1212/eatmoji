@@ -29,7 +29,10 @@
         "SENDER_NAME": "Eatmoji Team",
         "SMTP_HOST": "smtp.gmail.com",
         "SMTP_PORT": 587,
-        "SMTP_SECURE": false
+        "SMTP_SECURE": false,
+        "TOTAL_UPLOAD_LIMIT_FREE": 2,
+        "REVENUECAT_GOOGLE_API_KEY": "goog_GfxrUaGGUthluwEZBLqJtQQwlSZ",
+        "REVENUECAT_APPLE_API_KEY": "appl_fMvFDhQZagQIYPihtywJfoqzRAh"
       },
       "r2_buckets": [
         {
@@ -56,7 +59,10 @@
         "SENDER_NAME": "Eatmoji Team",
         "SMTP_HOST": "smtp.gmail.com",
         "SMTP_PORT": 587,
-        "SMTP_IS_SECURE": false
+        "SMTP_IS_SECURE": false,
+        "TOTAL_UPLOAD_LIMIT_FREE": 15,
+        "REVENUECAT_GOOGLE_API_KEY": "goog_GfxrUaGGUthluwEZBLqJtQQwlSZ",
+        "REVENUECAT_APPLE_API_KEY": "appl_fMvFDhQZagQIYPihtywJfoqzRAh"
       },
       "r2_buckets": [
         {

@@ -20,6 +20,20 @@ export interface Env {
   VERTEX_AI_PROJECT_ID: string;
   VERTEX_AI_LOCATION: string;
   
+  // 上傳限制
+  TOTAL_UPLOAD_LIMIT_FREE?: number;
+  
+  // 強制更新版本
+  FORCE_UPDATE_VERSION?: string;
+  
+  // 維修模式
+  MAINTENANCE_ENABLED?: boolean;
+  MAINTENANCE_END_TIME?: string;
+  
+  // RevenueCat API Keys
+  REVENUECAT_GOOGLE_API_KEY?: string;
+  REVENUECAT_APPLE_API_KEY?: string;
+  
   // 郵件服務環境變數
   SENDER_EMAIL?: string;
   SENDER_APP_PASSWORD?: string;
