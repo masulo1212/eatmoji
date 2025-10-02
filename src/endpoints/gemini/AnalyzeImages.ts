@@ -8,7 +8,6 @@ import { SupportedLanguage } from "../../types/gemini";
 // 導入分層架構
 import { GeminiController } from "../../controllers/geminiController";
 import { GeminiService } from "../../services/geminiService";
-import { VertexAIService } from "../../services/vertexAIService";
 
 /**
  * AnalyzeImages endpoint - 分析餐點圖片
@@ -187,8 +186,9 @@ export class AnalyzeImages extends OpenAPIRoute {
       const userInput = userInputData ? String(userInputData) : null;
 
       // 5. 初始化依賴鏈（Service → Controller）
-      const isDev = c.env.NODE_ENV === "development";
-      const geminiService = isDev ? new GeminiService() : new VertexAIService();
+      // const isDev = c.env.NODE_ENV === "development";
+      // const geminiService = isDev ? new GeminiService() : new VertexAIService();
+      const geminiService = new GeminiService();
       const geminiController = new GeminiController(geminiService);
 
       // 6. 驗證請求參數

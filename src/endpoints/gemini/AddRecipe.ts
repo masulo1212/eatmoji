@@ -8,7 +8,6 @@ import { SupportedLanguage } from "../../types/gemini";
 // 導入分層架構
 import { GeminiController } from "../../controllers/geminiController";
 import { GeminiService } from "../../services/geminiService";
-import { VertexAIService } from "../../services/vertexAIService";
 
 /**
  * AddRecipe endpoint - 從餐點圖片創建食譜
@@ -187,8 +186,10 @@ export class AddRecipe extends OpenAPIRoute {
       const userInput = userInputData ? String(userInputData) : null;
 
       // 5. 初始化依賴鏈（Service → Controller）
-      const isDev = c.env.NODE_ENV === "development";
-      const geminiService = isDev ? new GeminiService() : new VertexAIService();
+      // const isDev = c.env.NODE_ENV === "development";
+      // const geminiService = isDev ? new GeminiService() : new VertexAIService();
+      const geminiService = new GeminiService();
+
       const geminiController = new GeminiController(geminiService);
 
       // 6. 驗證請求參數

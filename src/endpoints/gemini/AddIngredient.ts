@@ -10,7 +10,7 @@ import {
 
 // 導入分層架構
 import { GeminiController } from "../../controllers/geminiController";
-import { VertexAIService } from "../../services/vertexAIService";
+import { GeminiService } from "../../services/geminiService";
 
 /**
  * AddIngredient endpoint - 分析食材文字描述
@@ -113,15 +113,15 @@ export class AddIngredient extends OpenAPIRoute {
       const { input, user_language } = data.body;
 
       // 3. 初始化依賴鏈（Service → Controller）
-      const vertexAIService = new VertexAIService();
-      const geminiController = new GeminiController(vertexAIService);
+      const geminiService = new GeminiService();
+      const geminiController = new GeminiController(geminiService);
 
       // 4. 驗證請求參數
       const validationError = geminiController.validateAddIngredientRequest(
         input,
         user_language || "zh_TW"
       );
-      
+
       if (validationError) {
         return c.json(
           {

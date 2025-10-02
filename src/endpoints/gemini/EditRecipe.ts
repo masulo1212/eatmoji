@@ -9,7 +9,7 @@ import {
 
 // 導入分層架構
 import { GeminiController } from "../../controllers/geminiController";
-import { VertexAIService } from "../../services/vertexAIService";
+import { GeminiService } from "../../services/geminiService";
 
 /**
  * EditRecipe endpoint - 編輯食譜並提供多語言翻譯
@@ -49,10 +49,18 @@ export class EditRecipe extends OpenAPIRoute {
                   description: "Recipe description",
                   example: "A simple and nutritious home-cooked dish",
                 }),
-              step_texts: z.array(z.string().min(1, "Step cannot be empty")).min(1, "Step list cannot be empty").openapi({
-                description: "Array of cooking steps",
-                example: ["Beat eggs and add a little salt", "Heat oil in pan, pour in egg mixture and scramble", "Add more oil and stir-fry tomatoes", "Add scrambled eggs and mix well"],
-              }),
+              step_texts: z
+                .array(z.string().min(1, "Step cannot be empty"))
+                .min(1, "Step list cannot be empty")
+                .openapi({
+                  description: "Array of cooking steps",
+                  example: [
+                    "Beat eggs and add a little salt",
+                    "Heat oil in pan, pour in egg mixture and scramble",
+                    "Add more oil and stir-fry tomatoes",
+                    "Add scrambled eggs and mix well",
+                  ],
+                }),
               user_language: z
                 .string()
                 .optional()
@@ -158,7 +166,6 @@ export class EditRecipe extends OpenAPIRoute {
       const userLanguage = requestBody.user_language || "zh_TW";
 
       // 4. 驗證輸入參數
-      console.log("requestBody", requestBody);
       const validationError = this.validateEditRecipeInput(
         name,
         description,
@@ -198,8 +205,9 @@ export class EditRecipe extends OpenAPIRoute {
       }
 
       // 6. 初始化依賴鏈（Service → Controller）
-      const vertexAIService = new VertexAIService();
-      const geminiController = new GeminiController(vertexAIService);
+      // const vertexAIService = new VertexAIService();
+      const geminiService = new GeminiService();
+      const geminiController = new GeminiController(geminiService);
 
       // 7. 調用 Controller 處理業務邏輯
       const result = await geminiController.editRecipe(
@@ -259,7 +267,8 @@ export class EditRecipe extends OpenAPIRoute {
             errors: [
               {
                 code: 400,
-                message: "Invalid request format, please use application/json format",
+                message:
+                  "Invalid request format, please use application/json format",
               },
             ],
           },
