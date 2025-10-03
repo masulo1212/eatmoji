@@ -1,5 +1,6 @@
-import { FirestoreClient } from "firebase-rest-firestore";
-import { WeightEntry, firestoreTimestampToDate } from "../types/weight";
+import { WeightEntry, firestoreTimestampToDate } from "./types/weight.types";
+import { BaseRepository, IFirestoreService, Injectable } from "../../shared";
+import { QueryConfig } from "../../shared/types/firestore.types";
 
 /**
  * Weight Repository 介面 - 定義體重資料存取操作
@@ -33,33 +34,51 @@ export interface IWeightRepository {
 
 /**
  * Firestore Weight Repository 實作
+ * 繼承 BaseRepository 減少重複程式碼
  */
-export class FirestoreWeightRepository implements IWeightRepository {
-  constructor(private firestore: FirestoreClient) {}
-
-  /**
-   * 取得使用者的 weight collection 參考
-   * @param userId 使用者 ID
-   * @returns Collection 參考
-   */
-  private getUserWeightCollection(userId: string) {
-    return this.firestore.collection(`users/${userId}/weight`);
+@Injectable()
+export class WeightRepository extends BaseRepository<WeightEntry> implements IWeightRepository {
+  constructor(firestoreService: IFirestoreService) {
+    super(firestoreService, 'weight');
   }
 
   /**
-   * 將 Firestore 文件轉換為 WeightEntry 物件
-   * @param doc Firestore 文件
-   * @returns 經過適當類型轉換的 WeightEntry 物件
+   * 重寫 buildCollectionPath 以處理 users/{userId}/weight 的巢狀結構
+   * 當傳入 'users' 和 userId 時，建構正確的路徑順序
    */
-  private convertFirestoreDocToWeightEntry(doc: any): WeightEntry {
-    const data = doc.data();
+  protected buildCollectionPath(...segments: string[]): string {
+    // 檢查是否是 users/{userId}/weight 的模式
+    if (segments.length === 2 && segments[0] === 'users') {
+      const userId = segments[1];
+      return `users/${userId}/${this.collectionName}`;
+    }
+    
+    // 其他情況使用預設邏輯
+    return [this.collectionName, ...segments].join("/");
+  }
 
+  /**
+   * 實作 BaseRepository 抽象方法：從 Firestore 資料轉換為 WeightEntry
+   */
+  fromFirestore(data: any, id?: string): WeightEntry {
     return {
-      dateId: doc.id, // 使用文件 ID 作為 dateId
+      dateId: id || data.dateId,
       weight: data.weight || 0,
       unit: data.unit || "kg",
       source: data.source || "manual",
       createdAt: firestoreTimestampToDate(data.createdAt),
+    };
+  }
+
+  /**
+   * 實作 BaseRepository 抽象方法：將 WeightEntry 轉換為 Firestore 資料
+   */
+  toFirestore(entry: WeightEntry): any {
+    return {
+      weight: entry.weight,
+      unit: entry.unit,
+      source: entry.source,
+      createdAt: entry.createdAt,
     };
   }
 
@@ -73,34 +92,19 @@ export class FirestoreWeightRepository implements IWeightRepository {
    */
   async addWeight(userId: string, entry: WeightEntry): Promise<void> {
     try {
-      const collection = this.getUserWeightCollection(userId);
-      const docRef = collection.doc(entry.dateId);
-
       // 檢查文件是否已存在
-      const docSnapshot = await docRef.get();
+      const existingEntry = await this.get(entry.dateId, 'users', userId);
 
-      if (docSnapshot.exists) {
-        const existingData = docSnapshot.data();
-        if (existingData) {
-          const existingCreatedAt = firestoreTimestampToDate(existingData.createdAt);
-
-          // 比較現有 createdAt，若較新則不覆蓋
-          if (entry.createdAt <= existingCreatedAt) {
-            console.log(`現有資料比較新，跳過寫入: ${entry.dateId}`);
-            return;
-          }
+      if (existingEntry) {
+        // 比較現有 createdAt，若較新則不覆蓋
+        if (entry.createdAt <= existingEntry.createdAt) {
+          console.log(`現有資料比較新，跳過寫入: ${entry.dateId}`);
+          return;
         }
       }
 
-      // 準備寫入的資料
-      const docData = {
-        weight: entry.weight,
-        unit: entry.unit,
-        source: entry.source,
-        createdAt: entry.createdAt,
-      };
-
-      await docRef.set(docData);
+      // 建立或更新記錄
+      await this.create(entry.dateId, entry, 'users', userId);
     } catch (error) {
       console.error("Repository: 新增體重記錄時發生錯誤:", error);
       throw new Error("無法新增體重記錄到資料庫");
@@ -115,23 +119,21 @@ export class FirestoreWeightRepository implements IWeightRepository {
    */
   async getWeight(userId: string, startDate?: Date): Promise<WeightEntry[]> {
     try {
-      const collection = this.getUserWeightCollection(userId);
-      let query;
-
       if (startDate) {
-        // 有 startDate：使用 where + orderBy (對應前端邏輯)
-        query = collection
-          .where("createdAt", ">=", startDate)
-          .orderBy("createdAt", "desc");
+        // 有 startDate：使用查詢條件
+        const queryConfig: QueryConfig = {
+          conditions: [
+            { field: "createdAt", operator: ">=", value: startDate }
+          ],
+          orderBy: [
+            { field: "createdAt", direction: "desc" }
+          ]
+        };
+        return await this.query(queryConfig, 'users', userId);
       } else {
-        // 沒有 startDate：直接使用 collection (對應前端邏輯)
-        query = collection;
+        // 沒有 startDate：取得所有記錄
+        return await this.getAll('users', userId);
       }
-
-      const snapshot = await query.get();
-      return snapshot.docs.map((doc) =>
-        this.convertFirestoreDocToWeightEntry(doc)
-      );
     } catch (error) {
       console.error("Repository: 取得體重記錄列表時發生錯誤:", error);
       throw new Error("無法從資料庫取得體重記錄列表");
@@ -146,18 +148,7 @@ export class FirestoreWeightRepository implements IWeightRepository {
    */
   async getLatestWeight(userId: string): Promise<WeightEntry | null> {
     try {
-      const collection = this.getUserWeightCollection(userId);
-      const querySnapshot = await collection
-        .orderBy("createdAt", "desc")
-        .limit(1)
-        .get();
-
-      if (querySnapshot.docs.length === 0) {
-        return null;
-      }
-
-      const doc = querySnapshot.docs[0];
-      return this.convertFirestoreDocToWeightEntry(doc);
+      return await this.getLatest("createdAt", 'users', userId);
     } catch (error) {
       console.error("Repository: 取得最新體重記錄時發生錯誤:", error);
       throw new Error("無法從資料庫取得最新體重記錄");

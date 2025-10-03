@@ -1,21 +1,9 @@
-import { ApiException, fromHono } from "chanfana";
+import { ApiException } from "chanfana";
 import { Hono } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
-import { DummyEndpoint } from "./endpoints/dummyEndpoint";
-import { tasksRouter } from "./endpoints/tasks/router";
-import { diariesRouter } from "./endpoints/diaries/router";
-import { chatsRouter } from "./endpoints/chats/router";
-import { dailyWorkoutsRouter } from "./endpoints/daily-workouts/router";
-import { favFoodsRouter } from "./endpoints/favFoods/router";
-import { recipesRouter } from "./endpoints/recipes/router";
-import { weightRouter } from "./endpoints/weight/router";
-import { usersRouter } from "./endpoints/users/router";
-import { fcmTokensRouter } from "./endpoints/fcm-tokens/router";
-import { imagesRouter } from "./endpoints/images/router";
-import { geminiRouter } from "./endpoints/gemini/router";
-import { emailRouter } from "./endpoints/email/router";
-import { configRouter } from "./endpoints/config/router";
 import type { Env } from "./bindings";
+import { WeightModule } from "./modules/weight";
+import { initializeFirestore } from "./utils/firebase";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
@@ -42,59 +30,131 @@ app.onError((err, c) => {
   );
 });
 
-// Setup OpenAPI registry
-const openapi = fromHono(app, {
-  docs_url: IS_DEV ? "/" : undefined,
-  schema: {
-    info: {
-      title: "Eatmoji API",
-      version: "2.0.0",
-      description: "Eatmoji API Documentation",
-    },
-  },
+// // Setup OpenAPI registry
+// const openapi = fromHono(app, {
+//   docs_url: IS_DEV ? "/" : undefined,
+//   schema: {
+//     info: {
+//       title: "Eatmoji API",
+//       version: "2.0.0",
+//       description: "Eatmoji API Documentation",
+//     },
+//   },
+// });
+
+// // Register Tasks Sub router
+// openapi.route("/tasks", tasksRouter);
+
+// // Register Diaries Sub router
+// openapi.route("/diaries", diariesRouter);
+
+// // Register Chats Sub router
+// openapi.route("/chats", chatsRouter);
+
+// // Register Daily Workouts Sub router
+// openapi.route("/daily-workouts", dailyWorkoutsRouter);
+
+// // Register FavFoods Sub router
+// openapi.route("/fav-foods", favFoodsRouter);
+
+// // Register Recipes Sub router
+// openapi.route("/recipes", recipesRouter);
+
+// // Weight 路由由新的 WeightModule 透過 @asla/hono-decorator 處理
+// // 使用子應用程式模式，路徑為 /weight
+
+// // Register Users Sub router
+// openapi.route("/users", usersRouter);
+
+// // Register FCM Tokens Sub router
+// openapi.route("/fcm-tokens", fcmTokensRouter);
+
+// // Register Images Sub router
+// openapi.route("/images", imagesRouter);
+
+// // Register Gemini AI Sub router
+// openapi.route("/gemini", geminiRouter);
+
+// // Register Email Sub router
+// openapi.route("/email", emailRouter);
+
+// // Register Config Sub router
+// openapi.route("/config", configRouter);
+
+// // Register other endpoints
+// openapi.post("/dummy/:slug", DummyEndpoint);
+
+// 模組管理器 - 管理所有 NestJS 風格的模組
+class ModuleManager {
+  private static initialized = false;
+
+  static async initializeModules(app: Hono<{ Bindings: Env }>, env: any): Promise<void> {
+    if (this.initialized) return;
+
+    console.log("🚀 正在初始化所有模組...");
+    
+    try {
+      const firestore = initializeFirestore(env);
+
+      // 註冊 WeightModule 到主應用程式
+      // Controller 的 basePath: "/weight" 會自動處理路由前綴
+      WeightModule.register(app, { firestore });
+      console.log("✅ WeightModule 註冊完成");
+
+      // 未來在這裡新增其他模組
+      // DiaryModule.register(app, { firestore });
+      // ChatModule.register(app, { firestore });
+
+      this.initialized = true;
+      console.log("✅ 所有模組註冊完成");
+    } catch (error) {
+      console.error("❌ 模組初始化失敗:", error);
+      throw error;
+    }
+  }
+
+  static isInitialized(): boolean {
+    return this.initialized;
+  }
+}
+
+// 建立初始化函數，在模組導出之前調用
+async function initializeApp() {
+  // 使用假的環境變數進行初始化
+  // 實際的 Firestore 會在第一次請求時建立
+  const dummyEnv = {
+    FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || "dummy",
+    FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL || "dummy",
+    FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY || "dummy"
+  };
+  
+  try {
+    await ModuleManager.initializeModules(app, dummyEnv);
+  } catch (error) {
+    console.error("應用程式初始化失敗，將使用延遲初始化:", error);
+  }
+}
+
+// 模組初始化中間件（僅用於延遲初始化）
+app.use("*", async (c, next) => {
+  // 如果尚未初始化，嘗試使用實際環境變數初始化
+  if (!ModuleManager.isInitialized()) {
+    try {
+      await ModuleManager.initializeModules(app, c.env);
+    } catch (error) {
+      console.error("❌ 延遲模組初始化失敗:", error);
+      return c.json({ error: "模組初始化失敗" }, 500);
+    }
+  }
+
+  await next();
 });
 
-// Register Tasks Sub router
-openapi.route("/tasks", tasksRouter);
+// 嘗試立即初始化
+initializeApp().catch(console.error);
 
-// Register Diaries Sub router
-openapi.route("/diaries", diariesRouter);
-
-// Register Chats Sub router
-openapi.route("/chats", chatsRouter);
-
-// Register Daily Workouts Sub router
-openapi.route("/daily-workouts", dailyWorkoutsRouter);
-
-// Register FavFoods Sub router
-openapi.route("/fav-foods", favFoodsRouter);
-
-// Register Recipes Sub router
-openapi.route("/recipes", recipesRouter);
-
-// Register Weight Sub router
-openapi.route("/weight", weightRouter);
-
-// Register Users Sub router
-openapi.route("/users", usersRouter);
-
-// Register FCM Tokens Sub router
-openapi.route("/fcm-tokens", fcmTokensRouter);
-
-// Register Images Sub router
-openapi.route("/images", imagesRouter);
-
-// Register Gemini AI Sub router
-openapi.route("/gemini", geminiRouter);
-
-// Register Email Sub router
-openapi.route("/email", emailRouter);
-
-// Register Config Sub router
-openapi.route("/config", configRouter);
-
-// Register other endpoints
-openapi.post("/dummy/:slug", DummyEndpoint);
+// 模組路由現在由 Controller 的 basePath 自動處理
+// WeightController 的 @Controller({ basePath: "/weight" }) 會自動註冊路由
 
 // Export the Hono app
 export default app;

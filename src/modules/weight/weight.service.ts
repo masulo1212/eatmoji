@@ -1,5 +1,7 @@
-import { IWeightRepository } from "../repositories/weightRepository";
-import { WeightEntry } from "../types/weight";
+import { Injectable } from "../../shared";
+import { CreateWeightDto } from "./dtos/create-weight.dto";
+import { WeightEntry } from "./types/weight.types";
+import { IWeightRepository } from "./weight.repository";
 
 /**
  * Weight Service 介面 - 定義業務邏輯操作
@@ -10,7 +12,7 @@ export interface IWeightService {
    * @param userId 使用者 ID
    * @param weightData 體重記錄資料
    */
-  addWeight(userId: string, weightData: Partial<WeightEntry>): Promise<void>;
+  addWeight(userId: string, weightData: CreateWeightDto): Promise<void>;
 
   /**
    * 取得體重記錄列表
@@ -32,6 +34,7 @@ export interface IWeightService {
  * Weight Service - 業務邏輯層
  * 負責業務規則驗證和業務邏輯處理，不直接操作資料庫
  */
+@Injectable()
 export class WeightService implements IWeightService {
   constructor(private weightRepository: IWeightRepository) {}
 
@@ -46,10 +49,7 @@ export class WeightService implements IWeightService {
    * @param userId 使用者 ID
    * @param weightData 體重記錄資料
    */
-  async addWeight(
-    userId: string,
-    weightData: Partial<WeightEntry>
-  ): Promise<void> {
+  async addWeight(userId: string, weightData: CreateWeightDto): Promise<void> {
     // 業務邏輯驗證
     if (!userId || userId.trim() === "") {
       throw new Error("使用者 ID 不能為空");
@@ -77,11 +77,6 @@ export class WeightService implements IWeightService {
     if (!this.isValidDateId(entry.dateId)) {
       throw new Error("dateId 格式必須為 YYYY-MM-DD");
     }
-
-    // 驗證日期合理性 - 不能是未來日期
-    // if (entryDate > new Date()) {
-    //   throw new Error("體重記錄日期不能是未來日期");
-    // }
 
     // 驗證體重值的合理範圍（業務規則）
     if (entry.weight < 1 || entry.weight > 1000) {
@@ -154,7 +149,7 @@ export class WeightService implements IWeightService {
     try {
       // 委派給 Repository 執行資料查詢
       const latestWeight = await this.weightRepository.getLatestWeight(userId);
-
+      console.log("latestWeight", latestWeight);
       return latestWeight;
     } catch (error) {
       console.error("Service: 取得最新體重記錄時發生業務邏輯錯誤:", error);
