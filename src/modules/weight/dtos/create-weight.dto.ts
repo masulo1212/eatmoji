@@ -49,7 +49,7 @@ export const CreateWeightDtoSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "dateId 格式必須為 YYYY-MM-DD")
     .optional(),
-  createdAt: z.date().optional(),
+  createdAt: z.string().pipe(z.coerce.date()).optional(),
 });
 
 /**

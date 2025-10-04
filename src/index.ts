@@ -2,13 +2,19 @@ import { ApiException } from "chanfana";
 import { Hono } from "hono";
 import { ContentfulStatusCode } from "hono/utils/http-status";
 import type { Env } from "./bindings";
+import { UserModule } from "./modules/users";
 import { WeightModule } from "./modules/weight";
+import { ConfigModule } from "./modules/config";
+import { DailyWorkoutModule } from "./modules/daily-workouts";
 import { initializeFirestore } from "./utils/firebase";
 
 // Start a Hono app
 const app = new Hono<{ Bindings: Env }>();
 const IS_DEV = process.env.NODE_ENV !== "production";
 console.log(IS_DEV);
+
+// 不需要額外的路由處理，@Post() 和 @Get() 會自動處理路徑匹配
+
 app.onError((err, c) => {
   if (err instanceof ApiException) {
     // If it's a Chanfana ApiException, let Chanfana handle the response
@@ -60,9 +66,6 @@ app.onError((err, c) => {
 // // Register Recipes Sub router
 // openapi.route("/recipes", recipesRouter);
 
-// // Weight 路由由新的 WeightModule 透過 @asla/hono-decorator 處理
-// // 使用子應用程式模式，路徑為 /weight
-
 // // Register Users Sub router
 // openapi.route("/users", usersRouter);
 
@@ -88,11 +91,14 @@ app.onError((err, c) => {
 class ModuleManager {
   private static initialized = false;
 
-  static async initializeModules(app: Hono<{ Bindings: Env }>, env: any): Promise<void> {
+  static async initializeModules(
+    app: Hono<{ Bindings: Env }>,
+    env: any
+  ): Promise<void> {
     if (this.initialized) return;
 
     console.log("🚀 正在初始化所有模組...");
-    
+
     try {
       const firestore = initializeFirestore(env);
 
@@ -100,6 +106,21 @@ class ModuleManager {
       // Controller 的 basePath: "/weight" 會自動處理路由前綴
       WeightModule.register(app, { firestore });
       console.log("✅ WeightModule 註冊完成");
+
+      // 註冊 UserModule 到主應用程式
+      // Controller 的 basePath: "/users" 會自動處理路由前綴
+      UserModule.register(app, { firestore });
+      console.log("✅ UserModule 註冊完成");
+
+      // 註冊 ConfigModule 到主應用程式
+      // 處理配置相關的 API 端點：/config/*
+      ConfigModule.register(app, { firestore });
+      console.log("✅ ConfigModule 註冊完成");
+
+      // 註冊 DailyWorkoutModule 到主應用程式
+      // 處理每日運動相關的 API 端點：/daily-workouts/*
+      DailyWorkoutModule.register(app, { firestore });
+      console.log("✅ DailyWorkoutModule 註冊完成");
 
       // 未來在這裡新增其他模組
       // DiaryModule.register(app, { firestore });
@@ -125,9 +146,9 @@ async function initializeApp() {
   const dummyEnv = {
     FIREBASE_PROJECT_ID: process.env.FIREBASE_PROJECT_ID || "dummy",
     FIREBASE_CLIENT_EMAIL: process.env.FIREBASE_CLIENT_EMAIL || "dummy",
-    FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY || "dummy"
+    FIREBASE_PRIVATE_KEY: process.env.FIREBASE_PRIVATE_KEY || "dummy",
   };
-  
+
   try {
     await ModuleManager.initializeModules(app, dummyEnv);
   } catch (error) {

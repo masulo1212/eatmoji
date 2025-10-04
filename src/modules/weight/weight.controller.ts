@@ -51,7 +51,7 @@ export class WeightController {
       return ctx.json(data, 400);
     }
   })
-  @Post("/")
+  @Post("")
   async addWeight(
     userId: string,
     weightData: CreateWeightDto
@@ -103,7 +103,7 @@ export class WeightController {
       return ctx.json(data, 400);
     }
   })
-  @Get("/")
+  @Get("")
   async getWeights(
     userId: string,
     query: WeightQueryDto

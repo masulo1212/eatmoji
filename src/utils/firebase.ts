@@ -9,6 +9,7 @@ import {
   FirebaseStorageConfig, 
   IStorageService 
 } from "../services/storageService";
+import { FirestoreService, IFirestoreService } from "../shared/services/firestore.service";
 
 /**
  * Initialize Firestore client with proper configuration
@@ -95,4 +96,23 @@ export function getStorageFromContext(c: AppContext): IStorageService {
   const storage = initializeStorage(c.env);
   c.set('storageService', storage);
   return storage;
+}
+
+/**
+ * Get Firestore service (wrapped FirestoreClient) from Hono context with caching
+ * @param c Hono context containing environment variables
+ * @returns IFirestoreService instance (cached if available)
+ */
+export function getFirestoreServiceFromContext(c: AppContext): IFirestoreService {
+  // 檢查是否已經快取了 FirestoreService
+  const cached = c.get('firestoreService') as IFirestoreService | undefined;
+  if (cached) {
+    return cached;
+  }
+
+  // 建立新的 FirestoreService 並快取
+  const client = getFirestoreFromContext(c);
+  const firestoreService = new FirestoreService(client);
+  c.set('firestoreService', firestoreService);
+  return firestoreService;
 }
